@@ -44,6 +44,21 @@ class AddonsPlugin extends phplistPlugin
         parent::__construct();
     }
 
+    public function activate()
+    {
+        global $addonsUpdater;
+
+        if (isset($addonsUpdater)) {
+            $this->topMenuLinks = [
+                'update' => array('category' => 'system'),
+            ];
+            $this->pageTitles = [
+                'update' => 'Alternative updater',
+            ];
+        }
+        parent::activate();
+    }
+
     public function processSendStats($sent = 0, $invalid = 0, $failed_sent = 0, $unconfirmed = 0, $counters = array())
     {
         if (getConfig('addons_remote_processing_log')) {

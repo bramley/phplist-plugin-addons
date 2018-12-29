@@ -19,4 +19,5 @@ The recommended way to install is through the Plugins page (menu Config > Manage
 ## Version history ##
 
     version         Description
+    1.1.0+20181229  Add update page to update the phplist code
     1.0.0+20181207  Log events for remote queue processing

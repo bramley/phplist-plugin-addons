@@ -1,3 +1,6 @@
+version 1.1.0+20181229
+      Add update page to update the phplist code
+
 version 1.0.0+20181207
       Log events for remote queue processing
 
