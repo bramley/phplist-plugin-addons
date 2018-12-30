@@ -1,11 +1,7 @@
 <?php
 
-function exec_enabled()
-{
-    $disabled = explode(',', ini_get('disable_functions'));
-
-    return !in_array('exec', $disabled);
-}
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Filesystem\Exception\IOExceptionInterface;
 
 function get($url)
 {
@@ -18,11 +14,6 @@ function get($url)
     return $content;
 }
 
-if (!exec_enabled()) {
-    echo 'exec() is not enabled';
-
-    return;
-}
 $v = json_decode(get('https://download.phplist.org/version.json'));
 $latestVersion = $v->version;
 
@@ -36,85 +27,79 @@ $work = $addonsUpdater['work'];
 $lists = $_SERVER['DOCUMENT_ROOT'] . $pageroot;
 $now = date('YmdHi');
 $backupDir = "$work/lists_{$currentVersion}_$now";
-$distribution = "$work/phplist-$latestVersion";
+$distributionDir = "$work/phplist-$latestVersion";
+$distributionZip = "$work/phplist-$latestVersion.zip";
 
 // download and expand the distribution zip file
-$commands = [
-    "wget -P $work -o $work/wget.log https://downloads.sourceforge.net/project/phplist/phplist/$latestVersion/phplist-$latestVersion.zip",
-    "unzip -d $work $distribution.zip",
-    "mkdir $backupDir",
-];
-try {
-    run($commands);
-} catch (Exception $e) {
+$download = get("https://downloads.sourceforge.net/project/phplist/phplist/$latestVersion/phplist-$latestVersion.zip");
+
+if (!$download) {
+    echo 'download failed';
+
     return;
 }
+$r = file_put_contents($distributionZip, $download);
+
+if (!$r) {
+    echo 'file put failed';
+
+    return;
+}
+$zip = new ZipArchive;
+
+if (!$zip->open($distributionZip)) {
+    echo 'zip open failed';
+
+    return;
+}
+$zip->extractTo($work);
+$zip->close();
+
+$fs = new Filesystem();
+$fs->mkdir($backupDir, 0755);
 
 // backup and copy the files and directories in the distribution /lists directory
-$commands = [];
-$it = new DirectoryIterator("$distribution/public_html/lists");
+
+$it = new DirectoryIterator("$distributionDir/public_html/lists");
 
 foreach ($it as $fileinfo) {
     if ($fileinfo->isDot()) {
         continue;
     }
-    $dest = $lists . '/' . $fileinfo->getFilename();
+    $targetName = $lists . '/' . $fileinfo->getFilename();
+    $backupName = $backupDir . '/' . $fileinfo->getFilename();
 
-    if (file_exists($dest)) {
-        $commands[] = "mv -t $backupDir $dest";
+    if (file_exists($targetName)) {
+        $fs->rename($targetName, $backupName);
     }
-    $commands[] = sprintf("mv -t $lists %s", $fileinfo->getPathname());
-}
-try {
-    run($commands);
-} catch (Exception $e) {
-    return;
+    $fs->rename($fileinfo->getPathname(), $targetName);
 }
 
 // copy specific files and directories from the backup
-$commands = [];
 
 if (isset($addonsUpdater['files'])) {
     foreach ($addonsUpdater['files'] as $file) {
-        $filename = "$backupDir/$file";
+        $backupName = "$backupDir/$file";
+        $targetName = "$lists/$file";
 
-        if (file_exists($filename)) {
-            $commands[] = "cp $filename $lists/$file";
+        if (file_exists($backupName)) {
+            $fs->copy($backupName, $targetName);
         }
     }
 }
 
 if (isset($addonsUpdater['directories'])) {
     foreach ($addonsUpdater['directories'] as $dir) {
-        if (file_exists("$backupDir/$dir")) {
-            $commands[] = "cp -r $backupDir/$dir $lists/$dir";
+        $backupName = "$backupDir/$dir";
+        $targetName = "$lists/$dir";
+
+        if (file_exists($backupName)) {
+            $fs->mkdir($targetName, 0755);
+            $fs->mirror($backupName, $targetName);
         }
     }
 }
 
 // tidy-up
-$commands[] = "rm -r $distribution";
-$commands[] = "rm $distribution.zip";
-try {
-    run($commands);
-} catch (Exception $e) {
-    return;
-}
-
-function run($commands)
-{
-    foreach ($commands as $command) {
-        $output = [];
-        echo sprintf('<code>%s</code><br/>', $command);
-        $lastLine = exec($command, $output, $returnStatus);
-
-        if ($returnStatus != 0) {
-            var_dump($command);
-            var_dump($lastLine);
-            var_dump($output);
-            var_dump($returnStatus);
-
-            throw new Exception();
-        }
-    }
-}
+$fs->remove($distributionDir);
+$fs->remove($distributionZip);

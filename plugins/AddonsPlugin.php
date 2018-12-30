@@ -44,6 +44,19 @@ class AddonsPlugin extends phplistPlugin
         parent::__construct();
     }
 
+    public function dependencyCheck()
+    {
+        global $plugins;
+
+        return array(
+            'PHP version 5.6.0 or greater' => version_compare(PHP_VERSION, '5.6') > 0,
+            'Common plugin v3.9.7 or later installed' => (
+                phpListPlugin::isEnabled('CommonPlugin')
+                && version_compare($plugins['CommonPlugin']->version, '3.9.7') >= 0
+            ),
+        );
+    }
+
     public function activate()
     {
         global $addonsUpdater;
