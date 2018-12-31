@@ -1,3 +1,8 @@
+version 1.2.0+20181231
+      Use php functions instead of exec()
+      Copy config file and additional plugins
+      Add symfony filesystem package
+
 version 1.1.0+20181229
       Add update page to update the phplist code
 

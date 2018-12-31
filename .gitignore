@@ -1,2 +1,8 @@
 .php_cs.cache
 README.html
+
+plugins/AddonsPlugin/vendor/symfony/filesystem/*
+!plugins/AddonsPlugin/vendor/symfony/filesystem/LICENSE
+!plugins/AddonsPlugin/vendor/symfony/filesystem/Filesystem.php
+!plugins/AddonsPlugin/vendor/symfony/filesystem/LockHandler.php
+!plugins/AddonsPlugin/vendor/symfony/filesystem/Exception/

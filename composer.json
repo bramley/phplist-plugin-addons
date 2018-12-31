@@ -1,0 +1,8 @@
+{
+    "config": {
+        "vendor-dir": "plugins/AddonsPlugin/vendor"
+    },
+    "require": {
+        "symfony/filesystem": "3.4"
+    }
+}
