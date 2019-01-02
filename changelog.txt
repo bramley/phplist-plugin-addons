@@ -1,3 +1,6 @@
+version 1.2.2+20190102
+      Remove erroneous $ character
+
 version 1.2.1+20190102
       Allow messages to be translated
 

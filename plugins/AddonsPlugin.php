@@ -56,7 +56,7 @@ class AddonsPlugin extends phplistPlugin
                 'update' => 'Alternative updater',
             ];
         }
-        $this->$settings = array(
+        $this->settings = array(
             'addons_remote_processing_log' => array(
                 'value' => false,
                 'description' => s('Log events when using remote page processing'),
