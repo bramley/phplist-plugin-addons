@@ -1,3 +1,6 @@
+version 1.2.1+20190102
+      Allow messages to be translated
+
 version 1.2.0+20181231
       Use php functions instead of exec()
       Copy config file and additional plugins

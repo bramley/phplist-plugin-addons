@@ -27,15 +27,6 @@ class AddonsPlugin extends phplistPlugin
     public $name = 'Addons Plugin';
     public $authors = 'Duncan Cameron';
     public $description = 'Additional functions for phpList';
-    public $settings = array(
-        'addons_remote_processing_log' => array(
-            'value' => false,
-            'description' => 'Log events when using remote page processing',
-            'type' => 'boolean',
-            'allowempty' => true,
-            'category' => 'Addons',
-        ),
-    );
 
     public function __construct()
     {
@@ -65,6 +56,15 @@ class AddonsPlugin extends phplistPlugin
                 'update' => 'Alternative updater',
             ];
         }
+        $this->$settings = array(
+            'addons_remote_processing_log' => array(
+                'value' => false,
+                'description' => s('Log events when using remote page processing'),
+                'type' => 'boolean',
+                'allowempty' => true,
+                'category' => 'Addons',
+            ),
+        );
         parent::activate();
     }
 
@@ -90,7 +90,7 @@ class AddonsPlugin extends phplistPlugin
             return;
         }
         if (VERBOSE && $counters['campaign'] == 0) {
-            logEvent('There are no campaigns to send');
+            logEvent(s('There are no campaigns to send'));
 
             return;
         }

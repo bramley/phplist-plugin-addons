@@ -40,16 +40,12 @@ function main()
     $r = file_put_contents($distributionZip, $download);
 
     if (!$r) {
-        echo 'file put failed';
-
-        return;
+        throw new Exception(s('Unable to save zip file'));
     }
     $zip = new ZipArchive();
 
     if (!$zip->open($distributionZip)) {
-        echo 'zip open failed';
-
-        return;
+        throw new Exception(s('Unable to open zip file'));
     }
     $zip->extractTo($work);
     $zip->close();
@@ -131,7 +127,7 @@ function main()
     $fs->remove($distributionDir);
     $fs->remove($distributionZip);
 
-    echo sprintf('phpList code has been updated to version %s', $latestVersion), '<br/>';
+    echo s('phpList code has been updated to version %s', $latestVersion), '<br/>';
 }
 
 if (isset($_POST['submit'])) {
