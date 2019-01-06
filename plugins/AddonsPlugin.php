@@ -31,8 +31,8 @@ class AddonsPlugin extends phplistPlugin
     public function __construct()
     {
         $this->coderoot = dirname(__FILE__) . '/' . __CLASS__ . '/';
-        $this->version = file_get_contents($this->coderoot . self::VERSION_FILE);
         parent::__construct();
+        $this->version = file_get_contents($this->coderoot . self::VERSION_FILE);
     }
 
     public function dependencyCheck()

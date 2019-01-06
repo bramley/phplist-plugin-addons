@@ -6,10 +6,8 @@ function get($url)
 {
     if (ini_get('allow_url_fopen') == '1') {
         $content = file_get_contents($url);
-    } elseif (function_exists('curl_init')) {
-        $content = fetchUrlCurl($url, ['timeout' => 600]);
     } else {
-        throw new Exception('curl or URL-aware fopen wrappers are required');
+        $content = fetchUrlCurl($url, ['timeout' => 600]);
     }
 
     return $content;
@@ -33,9 +31,7 @@ function main()
     $download = get("https://downloads.sourceforge.net/project/phplist/phplist/$latestVersion/phplist-$latestVersion.zip");
 
     if (!$download) {
-        echo 'download failed';
-
-        return;
+        throw new Exception(s('Download failed'));
     }
     $r = file_put_contents($distributionZip, $download);
 
@@ -44,10 +40,12 @@ function main()
     }
     $zip = new ZipArchive();
 
-    if (!$zip->open($distributionZip)) {
-        throw new Exception(s('Unable to open zip file'));
+    if (true !== ($error = $zip->open($distributionZip))) {
+        throw new Exception(s('Unable to open zip file, %s', $error));
     }
-    $zip->extractTo($work);
+    if (!$zip->extractTo($work)) {
+        throw new Exception(s('Unable to extract zip file'));
+    }
     $zip->close();
 
     $fs = new Filesystem();
@@ -150,6 +148,12 @@ if (isset($_SESSION['update_result'])) {
 
     return;
 }
+
+if (!(ini_get('allow_url_fopen') == '1' || function_exists('curl_init'))) {
+    echo 'curl or URL-aware fopen wrappers are required', '<br/>';
+
+    return;
+}
 $v = json_decode(get('https://download.phplist.org/version.json'));
 $latestVersion = $v->version;
 
@@ -158,12 +162,13 @@ if (!(isset($_GET['force']) || version_compare($latestVersion, VERSION) > 0)) {
 
     return;
 }
-echo s('phpList version %s is available', $latestVersion);
+$prompt = s('phpList version %s is available', $latestVersion);
 // remove force from query parameters
 $params = $_GET;
 unset($params['force']);
 $query = http_build_query($params);
 echo <<<END
+$prompt
 <form method="POST" action="./?$query">
     <input type="submit" name="submit" value="Update"/>
 </form>
