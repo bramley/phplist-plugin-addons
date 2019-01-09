@@ -1,3 +1,8 @@
+version 1.2.3+20190110
+      Tidy-up exception handling
+      Change download URL to work with release candidate versions
+      Update translations
+
 version 1.2.2+20190102
       Remove erroneous $ character
 

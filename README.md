@@ -19,6 +19,7 @@ The recommended way to install is through the Plugins page (menu Config > Manage
 ## Version history ##
 
     version         Description
+    1.2.3+20190110  Enable update to release candidate version
     1.2.2+20190102  Fix code error in previous version
     1.2.1+20190102  Allow messages to be translated
     1.2.0+20181231  Improve updating of phplist code
