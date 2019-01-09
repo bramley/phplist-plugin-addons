@@ -24,11 +24,11 @@ function main()
     $lists = $_SERVER['DOCUMENT_ROOT'] . $pageroot;
     $now = date('YmdHi');
     $backupDir = "$work/lists_{$currentVersion}_$now";
-    $distributionDir = "$work/phplist-$latestVersion";
+    $distributionDir = "$work/dist";
     $distributionZip = "$work/phplist-$latestVersion.zip";
 
     // download and expand the distribution zip file
-    $download = get("https://downloads.sourceforge.net/project/phplist/phplist/$latestVersion/phplist-$latestVersion.zip");
+    $download = get($v->url);
 
     if (!$download) {
         throw new Exception(s('Download failed'));
@@ -43,7 +43,8 @@ function main()
     if (true !== ($error = $zip->open($distributionZip))) {
         throw new Exception(s('Unable to open zip file, %s', $error));
     }
-    if (!$zip->extractTo($work)) {
+
+    if (!$zip->extractTo($distributionDir)) {
         throw new Exception(s('Unable to extract zip file'));
     }
     $zip->close();
@@ -53,7 +54,7 @@ function main()
 
     // backup and copy the files and directories in the distribution /lists directory
 
-    $it = new DirectoryIterator("$distributionDir/public_html/lists");
+    $it = new DirectoryIterator("$distributionDir/phplist/public_html/lists");
 
     foreach ($it as $fileinfo) {
         if ($fileinfo->isDot()) {
@@ -77,7 +78,7 @@ function main()
         $files[] = 'config/config.php';
     }
 
-    if (PLUGIN_ROOTDIR == 'plugins') {
+    if (PLUGIN_ROOTDIR == 'plugins' || realpath(PLUGIN_ROOTDIR) == realpath('plugins')) {
         // plugins are in the default location, copy additional files and directories from the backup plugins directory
         $distPlugins = scandir("$lists/admin/plugins");
         $installedPlugins = scandir("$backupDir/admin/plugins");
@@ -163,12 +164,16 @@ if (!(isset($_GET['force']) || version_compare($latestVersion, VERSION) > 0)) {
     return;
 }
 $prompt = s('phpList version %s is available', $latestVersion);
+$warning = false !== strpos($latestVersion, 'RC')
+    ? s('Note that the latest version is a release candidate, which is not for general use.')
+    : '';
 // remove force from query parameters
 $params = $_GET;
 unset($params['force']);
 $query = http_build_query($params);
 echo <<<END
-$prompt
+$prompt<br/>
+$warning
 <form method="POST" action="./?$query">
     <input type="submit" name="submit" value="Update"/>
 </form>
