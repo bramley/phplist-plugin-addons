@@ -49,6 +49,40 @@ function main()
     }
     $zip->close();
 
+    // create sets of specific files and directories to be copied from the backup
+    $additionalFiles = [];
+    $additionalDirs = [];
+
+    if ($configfile == '../config/config.php') {
+        // config file is in the default location
+        $additionalFiles[] = 'config/config.php';
+    }
+
+    if (PLUGIN_ROOTDIR == 'plugins' || realpath(PLUGIN_ROOTDIR) == realpath('plugins')) {
+        // plugins are in the default location, copy additional files and directories
+        $distPlugins = scandir("$distributionDir/phplist/public_html/lists/admin/plugins");
+        $installedPlugins = scandir("$lists/admin/plugins");
+        $additional = array_diff($installedPlugins, $distPlugins);
+
+        foreach ($additional as $file) {
+            $relativePath = "admin/plugins/$file";
+
+            if (is_file("$lists/$relativePath")) {
+                $additionalFiles[] = $relativePath;
+            } else {
+                $additionalDirs[] = $relativePath;
+            }
+        }
+    }
+
+    if (isset($addonsUpdater['files'])) {
+        $additionalFiles = array_merge($additionalFiles, $addonsUpdater['files']);
+    }
+
+    if (isset($addonsUpdater['directories'])) {
+        $additionalDirs = array_merge($additionalDirs, $addonsUpdater['directories']);
+    }
+
     $fs = new Filesystem();
     $fs->mkdir($backupDir, 0755);
 
@@ -69,52 +103,20 @@ function main()
         $fs->rename($fileinfo->getPathname(), $targetName);
     }
 
-    // copy specific files and directories from the backup
-    $files = [];
-    $dirs = [];
+    // copy additional files and directories from the backup
 
-    if ($configfile == '../config/config.php') {
-        // config file is in the default location
-        $files[] = 'config/config.php';
-    }
-
-    if (PLUGIN_ROOTDIR == 'plugins' || realpath(PLUGIN_ROOTDIR) == realpath('plugins')) {
-        // plugins are in the default location, copy additional files and directories from the backup plugins directory
-        $distPlugins = scandir("$lists/admin/plugins");
-        $installedPlugins = scandir("$backupDir/admin/plugins");
-        $additional = array_diff($installedPlugins, $distPlugins);
-
-        foreach ($additional as $file) {
-            $backupName = "$backupDir/admin/plugins/$file";
-
-            if (is_file($backupName)) {
-                $files[] = "admin/plugins/$file";
-            } else {
-                $dirs[] = "admin/plugins/$file";
-            }
-        }
-    }
-
-    if (isset($addonsUpdater['files'])) {
-        $files = array_merge($files, $addonsUpdater['files']);
-    }
-
-    foreach ($files as $file) {
-        $backupName = "$backupDir/$file";
-        $targetName = "$lists/$file";
+    foreach ($additionalFiles as $relativePath) {
+        $backupName = "$backupDir/$relativePath";
+        $targetName = "$lists/$relativePath";
 
         if (file_exists($backupName)) {
             $fs->copy($backupName, $targetName, true);
         }
     }
 
-    if (isset($addonsUpdater['directories'])) {
-        $dirs = array_merge($dirs, $addonsUpdater['directories']);
-    }
-
-    foreach ($dirs as $dir) {
-        $backupName = "$backupDir/$dir";
-        $targetName = "$lists/$dir";
+    foreach ($additionalDirs as $relativePath) {
+        $backupName = "$backupDir/$relativePath";
+        $targetName = "$lists/$relativePath";
 
         if (file_exists($backupName)) {
             $fs->mkdir($targetName, 0755);

@@ -1,3 +1,6 @@
+version 1.2.4+20190111
+      Re-order some of the processing
+
 version 1.2.3+20190110
       Tidy-up exception handling
       Change download URL to work with release candidate versions
