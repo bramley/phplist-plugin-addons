@@ -1,5 +1,7 @@
 <?php
 
+require 'vendor/autoload.php';
+
 use Symfony\Component\Filesystem\Filesystem;
 
 function get($url)

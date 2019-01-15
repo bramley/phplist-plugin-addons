@@ -68,6 +68,11 @@ class AddonsPlugin extends phplistPlugin
         parent::activate();
     }
 
+    public function adminmenu()
+    {
+        return [];
+    }
+
     public function processSendStats($sent = 0, $invalid = 0, $failed_sent = 0, $unconfirmed = 0, $counters = array())
     {
         if (getConfig('addons_remote_processing_log')) {
