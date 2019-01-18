@@ -19,6 +19,7 @@ The recommended way to install is through the Plugins page (menu Config > Manage
 ## Version history ##
 
     version         Description
+    1.2.5+20190118  Avoid downloading version.json more than once
     1.2.4+20190111  Re-order some of the processing
     1.2.3+20190110  Enable update to release candidate version
     1.2.2+20190102  Fix code error in previous version

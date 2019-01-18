@@ -1,3 +1,8 @@
+version 1.2.5+20190118
+      Minor changes
+      Avoid downloading version.json more than once.
+      Log event when update is successful.
+
 version 1.2.4+20190111
       Re-order some of the processing
 

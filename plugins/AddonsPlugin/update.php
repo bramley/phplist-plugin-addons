@@ -15,11 +15,10 @@ function get($url)
     return $content;
 }
 
-function main()
+function main($v)
 {
     global $addonsUpdater, $pageroot, $configfile;
 
-    $v = json_decode(get('https://download.phplist.org/version.json'));
     $latestVersion = $v->version;
     $currentVersion = VERSION;
     $work = $addonsUpdater['work'];
@@ -130,13 +129,23 @@ function main()
     $fs->remove($distributionDir);
     $fs->remove($distributionZip);
 
-    echo s('phpList code has been updated to version %s', $latestVersion), '<br/>';
+    $successMessage = s('phpList code has been updated to version %s', $latestVersion);
+    $format = <<<END
+<p>%s</p>
+<p>%s</p>
+END;
+    printf(
+        $format,
+        $successMessage,
+        s('Now <a href="%s">upgrade</a> the database.', './?page=upgrade')
+    );
+    logEvent($successMessage);
 }
 
 if (isset($_POST['submit'])) {
     try {
         ob_start();
-        main();
+        main($_SESSION['addons_version']);
         $_SESSION['update_result'] = ob_get_clean();
     } catch (Exception $e) {
         ob_end_clean();
@@ -159,11 +168,15 @@ if (!(ini_get('allow_url_fopen') == '1' || function_exists('curl_init'))) {
 
     return;
 }
-$v = json_decode(get('https://download.phplist.org/version.json'));
+
+if (!isset($_SESSION['addons_version'])) {
+    $_SESSION['addons_version'] = json_decode(get('https://download.phplist.org/version.json'));
+}
+$v = $_SESSION['addons_version'];
 $latestVersion = $v->version;
 
 if (!(isset($_GET['force']) || version_compare($latestVersion, VERSION) > 0)) {
-    echo s('phpList is up to date, version %s', VERSION), '<br/>';
+    echo '<p>', s('phpList is up to date, version %s', VERSION), '</p>';
 
     return;
 }
@@ -172,12 +185,10 @@ $warning = false !== strpos($latestVersion, 'RC')
     ? s('Note that the latest version is a release candidate, which is not for general use.')
     : '';
 // remove force from query parameters
-$params = $_GET;
-unset($params['force']);
-$query = http_build_query($params);
+$query = http_build_query(array_diff_key($_GET, ['force' => '']));
 echo <<<END
-$prompt<br/>
-$warning
+<p>$prompt<br/>
+$warning</p>
 <form method="POST" action="./?$query">
     <input type="submit" name="submit" value="Update"/>
 </form>
