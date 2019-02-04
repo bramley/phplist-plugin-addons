@@ -1,3 +1,7 @@
+version 1.3.0+20190205
+      Add workaround for Exim problem with line starting with dot character.
+      Minor rework
+
 version 1.2.5+20190118
       Minor changes
       Avoid downloading version.json more than once.

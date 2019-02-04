@@ -22,7 +22,7 @@ function main($v)
     $latestVersion = $v->version;
     $currentVersion = VERSION;
     $work = $addonsUpdater['work'];
-    $lists = $_SERVER['DOCUMENT_ROOT'] . $pageroot;
+    $listsDir = $_SERVER['DOCUMENT_ROOT'] . $pageroot;
     $now = date('YmdHi');
     $backupDir = "$work/lists_{$currentVersion}_$now";
     $distributionDir = "$work/dist";
@@ -50,9 +50,8 @@ function main($v)
     }
     $zip->close();
 
-    // create sets of specific files and directories to be copied from the backup
+    // create set of specific files and directories to be copied from the backup
     $additionalFiles = [];
-    $additionalDirs = [];
 
     if ($configfile == '../config/config.php') {
         // config file is in the default location
@@ -62,26 +61,16 @@ function main($v)
     if (PLUGIN_ROOTDIR == 'plugins' || realpath(PLUGIN_ROOTDIR) == realpath('plugins')) {
         // plugins are in the default location, copy additional files and directories
         $distPlugins = scandir("$distributionDir/phplist/public_html/lists/admin/plugins");
-        $installedPlugins = scandir("$lists/admin/plugins");
+        $installedPlugins = scandir("$listsDir/admin/plugins");
         $additional = array_diff($installedPlugins, $distPlugins);
 
         foreach ($additional as $file) {
-            $relativePath = "admin/plugins/$file";
-
-            if (is_file("$lists/$relativePath")) {
-                $additionalFiles[] = $relativePath;
-            } else {
-                $additionalDirs[] = $relativePath;
-            }
+            $additionalFiles[] = "admin/plugins/$file";
         }
     }
 
     if (isset($addonsUpdater['files'])) {
         $additionalFiles = array_merge($additionalFiles, $addonsUpdater['files']);
-    }
-
-    if (isset($addonsUpdater['directories'])) {
-        $additionalDirs = array_merge($additionalDirs, $addonsUpdater['directories']);
     }
 
     $fs = new Filesystem();
@@ -95,7 +84,7 @@ function main($v)
         if ($fileinfo->isDot()) {
             continue;
         }
-        $targetName = $lists . '/' . $fileinfo->getFilename();
+        $targetName = $listsDir . '/' . $fileinfo->getFilename();
         $backupName = $backupDir . '/' . $fileinfo->getFilename();
 
         if (file_exists($targetName)) {
@@ -107,21 +96,16 @@ function main($v)
     // copy additional files and directories from the backup
 
     foreach ($additionalFiles as $relativePath) {
-        $backupName = "$backupDir/$relativePath";
-        $targetName = "$lists/$relativePath";
+        $sourceName = "$backupDir/$relativePath";
+        $targetName = "$listsDir/$relativePath";
 
-        if (file_exists($backupName)) {
-            $fs->copy($backupName, $targetName, true);
-        }
-    }
-
-    foreach ($additionalDirs as $relativePath) {
-        $backupName = "$backupDir/$relativePath";
-        $targetName = "$lists/$relativePath";
-
-        if (file_exists($backupName)) {
-            $fs->mkdir($targetName, 0755);
-            $fs->mirror($backupName, $targetName, null, ['override' => true]);
+        if (file_exists($sourceName)) {
+            if (is_dir($sourceName)) {
+                $fs->mkdir($targetName, 0755);
+                $fs->mirror($sourceName, $targetName, null, ['override' => true]);
+            } else {
+                $fs->copy($sourceName, $targetName, true);
+            }
         }
     }
 
