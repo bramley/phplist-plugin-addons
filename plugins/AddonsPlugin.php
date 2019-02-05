@@ -64,6 +64,13 @@ class AddonsPlugin extends phplistPlugin
                 'allowempty' => true,
                 'category' => 'Addons',
             ),
+            'addons_exim_dot' => array(
+                'value' => false,
+                'description' => s('Workaround problem with Exim and line beginning with dot character'),
+                'type' => 'boolean',
+                'allowempty' => true,
+                'category' => 'Addons',
+            ),
         );
         parent::activate();
     }
@@ -85,6 +92,15 @@ class AddonsPlugin extends phplistPlugin
         if (getConfig('addons_remote_processing_log')) {
             $this->remoteQueueCampaignFinished($messageId, $msgdata);
         }
+    }
+
+    public function parseOutgoingTextMessage($messageid, $textmessage, $destinationemail, $userdata = null)
+    {
+        if (getConfig('addons_exim_dot')) {
+            return preg_replace('/^\./m', ' .', $textmessage);
+        }
+
+        return $textmessage;
     }
 
     private function remoteQueueLog($sent, $invalid, $failed_sent, $unconfirmed, $counters)
