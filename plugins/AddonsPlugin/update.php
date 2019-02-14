@@ -15,7 +15,32 @@ function get($url)
     return $content;
 }
 
-function main($v)
+function stage1($v)
+{
+    global $addonsUpdater;
+
+    $latestVersion = $v->version;
+    $work = $addonsUpdater['work'];
+    $distributionZip = "$work/phplist-$latestVersion.zip";
+
+    // download the distribution zip file
+    $download = get($v->url);
+
+    if (!$download) {
+        throw new Exception(s('Download failed'));
+    }
+    $r = file_put_contents($distributionZip, $download);
+
+    if (!$r) {
+        throw new Exception(s('Unable to save zip file'));
+    }
+
+    $successMessage = s('phpList zip file %s has been downloaded to  %s', $v->url, $distributionZip);
+    printf('<p>%s</p>', $successMessage);
+    logEvent($successMessage);
+}
+
+function stage2($v)
 {
     global $addonsUpdater, $pageroot, $configfile;
 
@@ -28,17 +53,6 @@ function main($v)
     $distributionDir = "$work/dist";
     $distributionZip = "$work/phplist-$latestVersion.zip";
 
-    // download and expand the distribution zip file
-    $download = get($v->url);
-
-    if (!$download) {
-        throw new Exception(s('Download failed'));
-    }
-    $r = file_put_contents($distributionZip, $download);
-
-    if (!$r) {
-        throw new Exception(s('Unable to save zip file'));
-    }
     $zip = new ZipArchive();
 
     if (true !== ($error = $zip->open($distributionZip))) {
@@ -126,25 +140,39 @@ END;
     logEvent($successMessage);
 }
 
-if (isset($_POST['submit'])) {
-    try {
-        ob_start();
-        main($_SESSION['addons_version']);
-        $_SESSION['update_result'] = ob_get_clean();
-    } catch (Exception $e) {
-        ob_end_clean();
-        $_SESSION['update_result'] = $e->getMessage();
+if (isset($_POST['stage'])) {
+    switch ($_POST['stage']) {
+        case 1:
+            try {
+                ob_start();
+                stage1($_SESSION['addons_version']);
+                $_SESSION['update_result'] = ob_get_clean();
+                $nextStage = 2;
+            } catch (Exception $e) {
+                ob_end_clean();
+                $_SESSION['update_result'] = $e->getMessage();
+                $nextStage = 'error';
+            }
+            $query = http_build_query($_GET + ['stage' => $nextStage]);
+            header("Location: ./?$query");
+
+            exit;
+        case 2:
+            try {
+                ob_start();
+                stage2($_SESSION['addons_version']);
+                $_SESSION['update_result'] = ob_get_clean();
+                $nextStage = 3;
+            } catch (Exception $e) {
+                ob_end_clean();
+                $_SESSION['update_result'] = $e->getMessage();
+                $nextStage = 'error';
+            }
+            $query = http_build_query($_GET + ['stage' => $nextStage]);
+            header("Location: ./?$query");
+
+            exit;
     }
-    header("Location: {$_SERVER['REQUEST_URI']}");
-
-    exit;
-}
-
-if (isset($_SESSION['update_result'])) {
-    echo $_SESSION['update_result'], '<br/>';
-    unset($_SESSION['update_result']);
-
-    return;
 }
 
 if (!(ini_get('allow_url_fopen') == '1' || function_exists('curl_init'))) {
@@ -156,24 +184,57 @@ if (!(ini_get('allow_url_fopen') == '1' || function_exists('curl_init'))) {
 if (!isset($_SESSION['addons_version'])) {
     $_SESSION['addons_version'] = json_decode(get('https://download.phplist.org/version.json'));
 }
-$v = $_SESSION['addons_version'];
-$latestVersion = $v->version;
+$stage = isset($_GET['stage']) ? $_GET['stage'] : 1;
 
-if (!(isset($_GET['force']) || version_compare($latestVersion, VERSION) > 0)) {
-    echo '<p>', s('phpList is up to date, version %s', VERSION), '</p>';
+switch ($stage) {
+    case 1:
+        $v = $_SESSION['addons_version'];
+        $latestVersion = $v->version;
 
-    return;
-}
-$prompt = s('phpList version %s is available', $latestVersion);
-$warning = false !== strpos($latestVersion, 'RC')
-    ? s('Note that the latest version is a release candidate, which is not for general use.')
-    : '';
-// remove force from query parameters
-$query = http_build_query(array_diff_key($_GET, ['force' => '']));
-echo <<<END
-<p>$prompt<br/>
-$warning</p>
-<form method="POST" action="./?$query">
-    <input type="submit" name="submit" value="Update"/>
-</form>
+        if (!(isset($_GET['force']) || version_compare($latestVersion, VERSION) > 0)) {
+            echo '<p>', s('phpList is up to date, version %s', VERSION), '</p>';
+
+            break;
+        }
+        /*
+         * form for stage 1
+         */
+        $prompt = s('phpList version %s is available', $latestVersion);
+        $warning = false !== strpos($latestVersion, 'RC')
+            ? s('Note that the latest version is a release candidate, which is not for general use.')
+            : '';
+        // remove force from query parameters
+        $query = htmlspecialchars(http_build_query(array_diff_key($_GET, ['force' => ''])));
+        echo <<<END
+            <p>$prompt<br/>
+            $warning</p>
+            <form method="POST" action="./?$query">
+                <button type="submit" name="stage" value="1">Download phpList zip file</button>
+            </form>
 END;
+        break;
+    case 2:
+        echo $_SESSION['update_result'], '<br/>';
+        unset($_SESSION['update_result']);
+        /*
+         * form for stage 2
+         */
+        $prompt = s('phplist zip file downloaded, now update');
+        $query = htmlspecialchars(http_build_query(array_diff_key($_GET, ['stage' => ''])));
+        echo <<<END
+        <p>$prompt</p>
+        <form method="POST" action="./?$query">
+            <button type="submit" name="stage" value="2">Update phpList code</button>
+        </form>
+END;
+
+        break;
+    case 3:
+        echo $_SESSION['update_result'], '<br/>';
+        unset($_SESSION['update_result']);
+        break;
+    case 'error':
+        echo $_SESSION['update_result'], '<br/>';
+        unset($_SESSION['update_result']);
+        break;
+}

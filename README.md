@@ -19,6 +19,7 @@ The recommended way to install is through the Plugins page (menu Config > Manage
 ## Version history ##
 
     version         Description
+    1.4.0+20190214  Rework the phplist update processing
     1.3.0+20190205  Add workaround for Exim problem with line starting with dot character
     1.2.5+20190118  Avoid downloading version.json more than once
     1.2.4+20190111  Re-order some of the processing
