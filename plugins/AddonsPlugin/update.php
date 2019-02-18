@@ -4,6 +4,19 @@ require 'vendor/autoload.php';
 
 use Symfony\Component\Filesystem\Filesystem;
 
+class Log
+{
+    public function __construct()
+    {
+        $this->logger = \phpList\plugin\Common\Logger::instance();
+    }
+
+    public function debug($message)
+    {
+        $this->logger->debug($message);
+    }
+}
+
 function get($url)
 {
     if (ini_get('allow_url_fopen') == '1') {
@@ -42,8 +55,34 @@ function stage1($v)
 
 function stage2($v)
 {
+    global $addonsUpdater;
+
+    $logger = new Log();
+    $latestVersion = $v->version;
+    $work = $addonsUpdater['work'];
+    $distributionDir = "$work/dist";
+    $distributionZip = "$work/phplist-$latestVersion.zip";
+
+    $logger->debug('before creating ziparchive object');
+    $zip = new ZipArchive();
+
+    if (true !== ($error = $zip->open($distributionZip))) {
+        throw new Exception(s('Unable to open zip file, %s', $error));
+    }
+    $logger->debug('before extracting zip archive');
+
+    if (!$zip->extractTo($distributionDir)) {
+        throw new Exception(s('Unable to extract zip file'));
+    }
+    $zip->close();
+    $logger->debug('extracted zip archive');
+}
+
+function stage3($v)
+{
     global $addonsUpdater, $pageroot, $configfile;
 
+    $logger = new Log();
     $latestVersion = $v->version;
     $currentVersion = VERSION;
     $work = $addonsUpdater['work'];
@@ -52,17 +91,6 @@ function stage2($v)
     $backupDir = "$work/lists_{$currentVersion}_$now";
     $distributionDir = "$work/dist";
     $distributionZip = "$work/phplist-$latestVersion.zip";
-
-    $zip = new ZipArchive();
-
-    if (true !== ($error = $zip->open($distributionZip))) {
-        throw new Exception(s('Unable to open zip file, %s', $error));
-    }
-
-    if (!$zip->extractTo($distributionDir)) {
-        throw new Exception(s('Unable to extract zip file'));
-    }
-    $zip->close();
 
     // create set of specific files and directories to be copied from the backup
     $additionalFiles = [];
@@ -103,8 +131,10 @@ function stage2($v)
 
         if (file_exists($targetName)) {
             $fs->rename($targetName, $backupName);
+            $logger->debug("renamed $targetName to $backupName");
         }
         $fs->rename($fileinfo->getPathname(), $targetName);
+        $logger->debug("installed $targetName from distribution");
     }
 
     // copy additional files and directories from the backup
@@ -117,8 +147,10 @@ function stage2($v)
             if (is_dir($sourceName)) {
                 $fs->mkdir($targetName, 0755);
                 $fs->mirror($sourceName, $targetName, null, ['override' => true]);
+                $logger->debug("copied directory $sourceName to $targetName");
             } else {
                 $fs->copy($sourceName, $targetName, true);
+                    $logger->debug("copied file $sourceName to $targetName");
             }
         }
     }
@@ -126,6 +158,7 @@ function stage2($v)
     // tidy-up
     $fs->remove($distributionDir);
     $fs->remove($distributionZip);
+    $logger->debug('deleted distribution directory and zip file');
 
     $successMessage = s('phpList code has been updated to version %s', $latestVersion);
     $format = <<<END
@@ -172,6 +205,21 @@ if (isset($_POST['stage'])) {
             header("Location: ./?$query");
 
             exit;
+        case 3:
+            try {
+                ob_start();
+                stage3($_SESSION['addons_version']);
+                $_SESSION['update_result'] = ob_get_clean();
+                $nextStage = 4;
+            } catch (Exception $e) {
+                ob_end_clean();
+                $_SESSION['update_result'] = $e->getMessage();
+                $nextStage = 'error';
+            }
+            $query = http_build_query($_GET + ['stage' => $nextStage]);
+            header("Location: ./?$query");
+
+            exit;
     }
 }
 
@@ -188,6 +236,8 @@ $stage = isset($_GET['stage']) ? $_GET['stage'] : 1;
 
 switch ($stage) {
     case 1:
+        $logger = new Log();
+        $logger->debug('here we are');
         $v = $_SESSION['addons_version'];
         $latestVersion = $v->version;
 
@@ -197,7 +247,7 @@ switch ($stage) {
             break;
         }
         /*
-         * form for stage 1
+         * form to run the download stage
          */
         $prompt = s('phpList version %s is available', $latestVersion);
         $warning = false !== strpos($latestVersion, 'RC')
@@ -217,19 +267,35 @@ END;
         echo $_SESSION['update_result'], '<br/>';
         unset($_SESSION['update_result']);
         /*
-         * form for stage 2
+         * form to run the extract stage
          */
-        $prompt = s('phplist zip file downloaded, now update');
+        $prompt = s('phplist zip file downloaded, now extract the zip file');
         $query = htmlspecialchars(http_build_query(array_diff_key($_GET, ['stage' => ''])));
         echo <<<END
         <p>$prompt</p>
         <form method="POST" action="./?$query">
-            <button type="submit" name="stage" value="2">Update phpList code</button>
+            <button type="submit" name="stage" value="2">Extract zip file</button>
         </form>
 END;
 
         break;
     case 3:
+        echo $_SESSION['update_result'], '<br/>';
+        unset($_SESSION['update_result']);
+        /*
+         * form to run the update stage
+         */
+        $prompt = s('phplist zip file extracted, now update the phpList code');
+        $query = htmlspecialchars(http_build_query(array_diff_key($_GET, ['stage' => ''])));
+        echo <<<END
+        <p>$prompt</p>
+        <form method="POST" action="./?$query">
+            <button type="submit" name="stage" value="3">Update phpList code</button>
+        </form>
+END;
+
+        break;
+    case 4:
         echo $_SESSION['update_result'], '<br/>';
         unset($_SESSION['update_result']);
         break;
