@@ -1,23 +1,30 @@
 <?php
+/**
+ * AddonsPlugin for phplist.
+ *
+ * This file is a part of AddonsPlugin.
+ *
+ * This plugin is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * This plugin is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * @category  phplist
+ *
+ * @author    Duncan Cameron
+ * @copyright 2019 Duncan Cameron
+ * @license   http://www.gnu.org/licenses/gpl.html GNU General Public License, Version 3
+ */
 
-require 'vendor/autoload.php';
+namespace phpList\plugin\AddonsPlugin;
 
-use Symfony\Component\Filesystem\Filesystem;
+use Exception;
 
-class Log
-{
-    public function __construct()
-    {
-        $this->logger = \phpList\plugin\Common\Logger::instance();
-    }
-
-    public function debug($message)
-    {
-        $this->logger->debug($message);
-    }
-}
-
-function get($url)
+function getUrl($url)
 {
     if (ini_get('allow_url_fopen') == '1') {
         $content = file_get_contents($url);
@@ -28,201 +35,6 @@ function get($url)
     return $content;
 }
 
-function stage1($v)
-{
-    global $addonsUpdater;
-
-    $latestVersion = $v->version;
-    $work = $addonsUpdater['work'];
-    $distributionZip = "$work/phplist-$latestVersion.zip";
-
-    // download the distribution zip file
-    $download = get($v->url);
-
-    if (!$download) {
-        throw new Exception(s('Download failed'));
-    }
-    $r = file_put_contents($distributionZip, $download);
-
-    if (!$r) {
-        throw new Exception(s('Unable to save zip file'));
-    }
-
-    $successMessage = s('phpList zip file %s has been downloaded to  %s', $v->url, $distributionZip);
-    printf('<p>%s</p>', $successMessage);
-    logEvent($successMessage);
-}
-
-function stage2($v)
-{
-    global $addonsUpdater;
-
-    $logger = new Log();
-    $latestVersion = $v->version;
-    $work = $addonsUpdater['work'];
-    $distributionDir = "$work/dist";
-    $distributionZip = "$work/phplist-$latestVersion.zip";
-
-    $logger->debug('before creating ziparchive object');
-    $zip = new ZipArchive();
-
-    if (true !== ($error = $zip->open($distributionZip))) {
-        throw new Exception(s('Unable to open zip file, %s', $error));
-    }
-    $logger->debug('before extracting zip archive');
-
-    if (!$zip->extractTo($distributionDir)) {
-        throw new Exception(s('Unable to extract zip file'));
-    }
-    $zip->close();
-    $logger->debug('extracted zip archive');
-}
-
-function stage3($v)
-{
-    global $addonsUpdater, $pageroot, $configfile;
-
-    $logger = new Log();
-    $latestVersion = $v->version;
-    $currentVersion = VERSION;
-    $work = $addonsUpdater['work'];
-    $listsDir = $_SERVER['DOCUMENT_ROOT'] . $pageroot;
-    $now = date('YmdHi');
-    $backupDir = "$work/lists_{$currentVersion}_$now";
-    $distributionDir = "$work/dist";
-    $distributionZip = "$work/phplist-$latestVersion.zip";
-
-    // create set of specific files and directories to be copied from the backup
-    $additionalFiles = [];
-
-    if ($configfile == '../config/config.php') {
-        // config file is in the default location
-        $additionalFiles[] = 'config/config.php';
-    }
-
-    if (PLUGIN_ROOTDIR == 'plugins' || realpath(PLUGIN_ROOTDIR) == realpath('plugins')) {
-        // plugins are in the default location, copy additional files and directories
-        $distPlugins = scandir("$distributionDir/phplist/public_html/lists/admin/plugins");
-        $installedPlugins = scandir("$listsDir/admin/plugins");
-        $additional = array_diff($installedPlugins, $distPlugins);
-
-        foreach ($additional as $file) {
-            $additionalFiles[] = "admin/plugins/$file";
-        }
-    }
-
-    if (isset($addonsUpdater['files'])) {
-        $additionalFiles = array_merge($additionalFiles, $addonsUpdater['files']);
-    }
-
-    $fs = new Filesystem();
-    $fs->mkdir($backupDir, 0755);
-
-    // backup and copy the files and directories in the distribution /lists directory
-
-    $it = new DirectoryIterator("$distributionDir/phplist/public_html/lists");
-
-    foreach ($it as $fileinfo) {
-        if ($fileinfo->isDot()) {
-            continue;
-        }
-        $targetName = $listsDir . '/' . $fileinfo->getFilename();
-        $backupName = $backupDir . '/' . $fileinfo->getFilename();
-
-        if (file_exists($targetName)) {
-            $fs->rename($targetName, $backupName);
-            $logger->debug("renamed $targetName to $backupName");
-        }
-        $fs->rename($fileinfo->getPathname(), $targetName);
-        $logger->debug("installed $targetName from distribution");
-    }
-
-    // copy additional files and directories from the backup
-
-    foreach ($additionalFiles as $relativePath) {
-        $sourceName = "$backupDir/$relativePath";
-        $targetName = "$listsDir/$relativePath";
-
-        if (file_exists($sourceName)) {
-            if (is_dir($sourceName)) {
-                $fs->mkdir($targetName, 0755);
-                $fs->mirror($sourceName, $targetName, null, ['override' => true]);
-                $logger->debug("copied directory $sourceName to $targetName");
-            } else {
-                $fs->copy($sourceName, $targetName, true);
-                    $logger->debug("copied file $sourceName to $targetName");
-            }
-        }
-    }
-
-    // tidy-up
-    $fs->remove($distributionDir);
-    $fs->remove($distributionZip);
-    $logger->debug('deleted distribution directory and zip file');
-
-    $successMessage = s('phpList code has been updated to version %s', $latestVersion);
-    $format = <<<END
-<p>%s</p>
-<p>%s</p>
-END;
-    printf(
-        $format,
-        $successMessage,
-        s('Now <a href="%s">upgrade</a> the database.', './?page=upgrade')
-    );
-    logEvent($successMessage);
-}
-
-if (isset($_POST['stage'])) {
-    switch ($_POST['stage']) {
-        case 1:
-            try {
-                ob_start();
-                stage1($_SESSION['addons_version']);
-                $_SESSION['update_result'] = ob_get_clean();
-                $nextStage = 2;
-            } catch (Exception $e) {
-                ob_end_clean();
-                $_SESSION['update_result'] = $e->getMessage();
-                $nextStage = 'error';
-            }
-            $query = http_build_query($_GET + ['stage' => $nextStage]);
-            header("Location: ./?$query");
-
-            exit;
-        case 2:
-            try {
-                ob_start();
-                stage2($_SESSION['addons_version']);
-                $_SESSION['update_result'] = ob_get_clean();
-                $nextStage = 3;
-            } catch (Exception $e) {
-                ob_end_clean();
-                $_SESSION['update_result'] = $e->getMessage();
-                $nextStage = 'error';
-            }
-            $query = http_build_query($_GET + ['stage' => $nextStage]);
-            header("Location: ./?$query");
-
-            exit;
-        case 3:
-            try {
-                ob_start();
-                stage3($_SESSION['addons_version']);
-                $_SESSION['update_result'] = ob_get_clean();
-                $nextStage = 4;
-            } catch (Exception $e) {
-                ob_end_clean();
-                $_SESSION['update_result'] = $e->getMessage();
-                $nextStage = 'error';
-            }
-            $query = http_build_query($_GET + ['stage' => $nextStage]);
-            header("Location: ./?$query");
-
-            exit;
-    }
-}
-
 if (!(ini_get('allow_url_fopen') == '1' || function_exists('curl_init'))) {
     echo 'curl or URL-aware fopen wrappers are required', '<br/>';
 
@@ -230,20 +42,43 @@ if (!(ini_get('allow_url_fopen') == '1' || function_exists('curl_init'))) {
 }
 
 if (!isset($_SESSION['addons_version'])) {
-    $_SESSION['addons_version'] = json_decode(get('https://download.phplist.org/version.json'));
+    $_SESSION['addons_version'] = json_decode(getUrl('https://download.phplist.org/version.json'));
+}
+
+if (isset($_POST['stage'])) {
+    try {
+        $updater = new Updater($_SESSION['addons_version']);
+
+        switch ($_POST['stage']) {
+            case 1:
+                $updater->downloadZipFile();
+                $nextStage = 2;
+                break;
+            case 2:
+                $updater->extractZipFile();
+                $nextStage = 3;
+                break;
+            case 3:
+                $updater->replaceFiles();
+                $nextStage = 4;
+                break;
+        }
+    } catch (Exception $e) {
+        $_SESSION['update_result'] = $e->getMessage();
+        $nextStage = 'error';
+    }
+    $query = http_build_query($_GET + ['stage' => $nextStage]);
+    header("Location: ./?$query");
+
+    exit;
 }
 $stage = isset($_GET['stage']) ? $_GET['stage'] : 1;
+$latestVersion = $_SESSION['addons_version']->version;
 
 switch ($stage) {
     case 1:
-        $logger = new Log();
-        $logger->debug('here we are');
-        $v = $_SESSION['addons_version'];
-        $latestVersion = $v->version;
-
         if (!(isset($_GET['force']) || version_compare($latestVersion, VERSION) > 0)) {
             echo '<p>', s('phpList is up to date, version %s', VERSION), '</p>';
-
             break;
         }
         /*
@@ -264,8 +99,6 @@ switch ($stage) {
 END;
         break;
     case 2:
-        echo $_SESSION['update_result'], '<br/>';
-        unset($_SESSION['update_result']);
         /*
          * form to run the extract stage
          */
@@ -277,11 +110,8 @@ END;
             <button type="submit" name="stage" value="2">Extract zip file</button>
         </form>
 END;
-
         break;
     case 3:
-        echo $_SESSION['update_result'], '<br/>';
-        unset($_SESSION['update_result']);
         /*
          * form to run the update stage
          */
@@ -293,14 +123,18 @@ END;
             <button type="submit" name="stage" value="3">Update phpList code</button>
         </form>
 END;
-
         break;
     case 4:
-        echo $_SESSION['update_result'], '<br/>';
-        unset($_SESSION['update_result']);
+        $successMessage = s('phpList code has been updated to version %s', $latestVersion);
+        printf(
+            '<p>%s</p><p>%s</p>',
+            $successMessage,
+            s('Now <a href="%s">upgrade</a> the database.', './?page=upgrade')
+        );
+        logEvent($successMessage);
         break;
     case 'error':
-        echo $_SESSION['update_result'], '<br/>';
+        echo $_SESSION['update_result'];
         unset($_SESSION['update_result']);
         break;
 }

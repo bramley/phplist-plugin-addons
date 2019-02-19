@@ -37,10 +37,9 @@ class AddonsPlugin extends phplistPlugin
 
     public function dependencyCheck()
     {
-        global $plugins;
-
         return array(
             'PHP version 5.6.0 or greater' => version_compare(PHP_VERSION, '5.6') > 0,
+            'Common Plugin installed' => phpListPlugin::isEnabled('CommonPlugin'),
         );
     }
 

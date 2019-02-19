@@ -1,3 +1,7 @@
+version 1.5.0+20190221
+      Add logging and stage to extract zip file
+      Move the process of applying an updating to a separate class
+
 version 1.4.0+20190214
       Order the update processing as set of steps
 
