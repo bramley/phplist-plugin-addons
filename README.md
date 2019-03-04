@@ -19,6 +19,7 @@ The recommended way to install is through the Plugins page (menu Config > Manage
 ## Version history ##
 
     version         Description
+    1.5.1+20190304  Test whether phplist and work directories are writeable
     1.5.0+20190221  More rework of the phplist update processing
     1.4.0+20190214  Rework the phplist update processing
     1.3.0+20190205  Add workaround for Exim problem with line starting with dot character

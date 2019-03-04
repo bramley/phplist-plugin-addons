@@ -77,6 +77,16 @@ $latestVersion = $_SESSION['addons_version']->version;
 
 switch ($stage) {
     case 1:
+        if (!is_writeable($workDir = $addonsUpdater['work'])) {
+            echo '<p>', s('work directory %s is not writeable', $workDir), '</p>';
+            break;
+        }
+
+        if (!is_writeable($listsDir = $_SERVER['DOCUMENT_ROOT'] . $pageroot)) {
+            echo '<p>', s('phpList directory %s is not writeable', $listsDir), '</p>';
+            break;
+        }
+
         if (!(isset($_GET['force']) || version_compare($latestVersion, VERSION) > 0)) {
             echo '<p>', s('phpList is up to date, version %s', VERSION), '</p>';
             break;
