@@ -1,3 +1,6 @@
+version 1.5.2+20190308
+      Update the requirements to install the plugin
+
 version 1.5.1+20190304
       Test whether phplist and work directories are writeable
 

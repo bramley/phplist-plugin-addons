@@ -8,9 +8,7 @@ Each feature can be enabled separately through the plugin's group on the Setting
 
 ### Dependencies ###
 
-This plugin requires phplist 3.3.2 or later.
-
-Requires php version 5.6 or later.
+This plugin requires phplist 3.3.2 or later, requires php version 5.6 or later, and also requires the Common plugin to be enabled.
 
 ### Install through phplist ###
 The recommended way to install is through the Plugins page (menu Config > Manage plugins) using the package URL
@@ -19,6 +17,7 @@ The recommended way to install is through the Plugins page (menu Config > Manage
 ## Version history ##
 
     version         Description
+    1.5.2+20190308  Update the requirements in README
     1.5.1+20190304  Test whether phplist and work directories are writeable
     1.5.0+20190221  More rework of the phplist update processing
     1.4.0+20190214  Rework the phplist update processing
