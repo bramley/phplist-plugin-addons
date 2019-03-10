@@ -110,6 +110,7 @@ class Updater
         // backup and move the files and directories in the distribution /lists directory
 
         $it = new DirectoryIterator("$this->distributionDir/phplist/public_html/lists");
+        $doNotInstall = isset($addonsUpdater['do_not_install']) ? $addonsUpdater['do_not_install'] : [];
 
         foreach ($it as $fileinfo) {
             if ($fileinfo->isDot()) {
@@ -122,8 +123,13 @@ class Updater
                 $fs->rename($targetName, $backupName);
                 $this->logger->debug("renamed $targetName to $backupName");
             }
-            $fs->rename($fileinfo->getPathname(), $targetName);
-            $this->logger->debug("installed $targetName from distribution");
+
+            if (in_array($fileinfo->getFilename(), $doNotInstall)) {
+                $this->logger->debug("not installing $targetName");
+            } else {
+                $fs->rename($fileinfo->getPathname(), $targetName);
+                $this->logger->debug("installed $targetName from distribution");
+            }
         }
 
         // copy additional files and directories from the backup
