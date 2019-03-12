@@ -30,27 +30,61 @@ use ZipArchive;
 
 class Updater
 {
-    public function __construct($v)
+    private $basename;
+    private $zipFile;
+    private $zipUrl;
+    private $md5Url;
+    private $workDir;
+    private $distributionDir;
+    private $distributionZip;
+    private $logger;
+
+    public function __construct($version)
     {
         global $addonsUpdater;
 
-        $this->url = $v->url;
-        $this->latestVersion = $v->version;
+        $this->basename = sprintf('phplist-%s', $version);
+        $this->zipFile = $this->basename . '.zip';
+        $urlTemplate = false === strpos($version, 'RC')
+            ? 'https://sourceforge.net/projects/phplist/files/phplist/%s/%s/download'
+            : 'https://sourceforge.net/projects/phplist/files/phplist-development/%s/%s/download';
+        $this->zipUrl = sprintf($urlTemplate, $version, $this->zipFile);
+        $this->md5Url = sprintf($urlTemplate, $version, $this->basename . '.md5');
         $this->workDir = $addonsUpdater['work'];
         $this->distributionDir = "$this->workDir/dist";
-        $this->distributionZip = "$this->workDir/phplist-$this->latestVersion.zip";
+        $this->distributionZip = "$this->workDir/$this->zipFile";
         $this->logger = Logger::instance();
     }
 
     public function downloadZipFile()
     {
-        $this->logger->debug('before downloading');
-        $download = getUrl($this->url);
+        $filesMd5 = $this->parseMd5Contents(getUrl($this->md5Url));
+        $expectedMd5 = $filesMd5[$this->zipFile];
 
-        if (!$download) {
+        // Use existing file if the MD5 is correct
+        if (file_exists($this->distributionZip)) {
+            $actualMd5 = md5_file($this->distributionZip);
+            $this->logger->debug(sprintf('expected md5 %s actual md5 %s', $expectedMd5, $actualMd5));
+
+            if ($actualMd5 == $expectedMd5) {
+                $this->logger->debug(sprintf('Using existing zip file %s', $this->distributionZip));
+
+                return;
+            }
+        }
+        $this->logger->debug(sprintf('Downloading %s', $this->zipUrl));
+        $zipContents = getUrl($this->zipUrl);
+
+        if (!$zipContents) {
             throw new Exception(s('Download failed'));
         }
-        $r = file_put_contents($this->distributionZip, $download);
+        $actualMd5 = md5($zipContents);
+        $this->logger->debug(sprintf('expected md5 %s actual md5 %s', $expectedMd5, $actualMd5));
+
+        if ($actualMd5 != $expectedMd5) {
+            throw new Exception(s('MD5 verification failed, expected %s actual %s', $expectedMd5, $actualMd5));
+        }
+        $r = file_put_contents($this->distributionZip, $zipContents);
 
         if (!$r) {
             throw new Exception(s('Unable to save zip file'));
@@ -79,7 +113,7 @@ class Updater
         global $addonsUpdater, $pageroot, $configfile;
 
         $listsDir = $_SERVER['DOCUMENT_ROOT'] . $pageroot;
-        $backupDir = sprintf('%s/lists_%s_%s', $this->workDir, VERSION, date('YmdHi'));
+        $backupDir = sprintf('%s/lists_%s_%s', $this->workDir, VERSION, date('YmdHis'));
 
         // create set of specific files and directories to be copied from the backup
         $additionalFiles = [];
@@ -91,7 +125,7 @@ class Updater
 
         if (PLUGIN_ROOTDIR == 'plugins' || realpath(PLUGIN_ROOTDIR) == realpath('plugins')) {
             // plugins are in the default location, copy additional files and directories
-            $distPlugins = scandir("$this->distributionDir/phplist/public_html/lists/admin/plugins");
+            $distPlugins = scandir("$this->distributionDir/$this->basename/public_html/lists/admin/plugins");
             $installedPlugins = scandir("$listsDir/admin/plugins");
             $additional = array_diff($installedPlugins, $distPlugins);
 
@@ -109,7 +143,7 @@ class Updater
 
         // backup and move the files and directories in the distribution /lists directory
 
-        $it = new DirectoryIterator("$this->distributionDir/phplist/public_html/lists");
+        $it = new DirectoryIterator("$this->distributionDir/$this->basename/public_html/lists");
         $doNotInstall = isset($addonsUpdater['do_not_install']) ? $addonsUpdater['do_not_install'] : [];
 
         foreach ($it as $fileinfo) {
@@ -121,7 +155,7 @@ class Updater
 
             if (file_exists($targetName)) {
                 $fs->rename($targetName, $backupName);
-                $this->logger->debug("renamed $targetName to $backupName");
+                $this->logger->debug("renamed $targetName");
             }
 
             if (in_array($fileinfo->getFilename(), $doNotInstall)) {
@@ -152,7 +186,19 @@ class Updater
 
         // tidy-up
         $fs->remove($this->distributionDir);
-        $fs->remove($this->distributionZip);
-        $this->logger->debug('deleted distribution directory and zip file');
+        $this->logger->debug('deleted distribution directory');
+    }
+
+    private function parseMd5Contents($md5Contents)
+    {
+        $md5 = [];
+
+        foreach (explode("\n", trim($md5Contents)) as $line) {
+            list($hash, $file) = preg_split('/\s+/', $line);
+            $md5[$file] = $hash;
+        }
+        $this->logger->debug(print_r($md5, true));
+
+        return $md5;
     }
 }

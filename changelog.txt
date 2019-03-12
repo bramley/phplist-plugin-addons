@@ -1,3 +1,9 @@
+version 1.6.0+20190312
+      Support not installing specific files or directories
+      Download files from sourceforge in order to verify the MD5 hash
+      Allow to force install a specific release
+      Tidy-up use of stage query parameter
+
 version 1.5.2+20190308
       Update the requirements to install the plugin
 

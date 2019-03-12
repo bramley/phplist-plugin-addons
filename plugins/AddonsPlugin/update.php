@@ -44,10 +44,11 @@ if (!(ini_get('allow_url_fopen') == '1' || function_exists('curl_init'))) {
 if (!isset($_SESSION['addons_version'])) {
     $_SESSION['addons_version'] = json_decode(getUrl('https://download.phplist.org/version.json'));
 }
+$versionToInstall = empty($_GET['force']) ? $_SESSION['addons_version']->version : $_GET['force'];
 
 if (isset($_POST['stage'])) {
     try {
-        $updater = new Updater($_SESSION['addons_version']);
+        $updater = new Updater($versionToInstall);
 
         switch ($_POST['stage']) {
             case 1:
@@ -67,13 +68,12 @@ if (isset($_POST['stage'])) {
         $_SESSION['update_result'] = $e->getMessage();
         $nextStage = 'error';
     }
-    $query = http_build_query($_GET + ['stage' => $nextStage]);
+    $query = http_build_query(array_merge($_GET, ['stage' => $nextStage]));
     header("Location: ./?$query");
 
     exit;
 }
 $stage = isset($_GET['stage']) ? $_GET['stage'] : 1;
-$latestVersion = $_SESSION['addons_version']->version;
 
 switch ($stage) {
     case 1:
@@ -87,23 +87,23 @@ switch ($stage) {
             break;
         }
 
-        if (!(isset($_GET['force']) || version_compare($latestVersion, VERSION) > 0)) {
+        if (!(isset($_GET['force']) || version_compare($versionToInstall, VERSION) > 0)) {
             echo '<p>', s('phpList is up to date, version %s', VERSION), '</p>';
             break;
         }
         /*
          * form to run the download stage
          */
-        $prompt = s('phpList version %s is available', $latestVersion);
-        $warning = false !== strpos($latestVersion, 'RC')
+        $prompt = empty($_GET['force'])
+            ? s('phpList version %s is available', $versionToInstall)
+            : s('Forcing installation of phpList version %s', $versionToInstall);
+        $warning = false !== strpos($versionToInstall, 'RC')
             ? s('Note that the latest version is a release candidate, which is not for general use.')
             : '';
-        // remove force from query parameters
-        $query = htmlspecialchars(http_build_query(array_diff_key($_GET, ['force' => ''])));
         echo <<<END
             <p>$prompt<br/>
             $warning</p>
-            <form method="POST" action="./?$query">
+            <form method="POST">
                 <button type="submit" name="stage" value="1">Download phpList zip file</button>
             </form>
 END;
@@ -113,10 +113,9 @@ END;
          * form to run the extract stage
          */
         $prompt = s('phplist zip file downloaded, now extract the zip file');
-        $query = htmlspecialchars(http_build_query(array_diff_key($_GET, ['stage' => ''])));
         echo <<<END
         <p>$prompt</p>
-        <form method="POST" action="./?$query">
+        <form method="POST">
             <button type="submit" name="stage" value="2">Extract zip file</button>
         </form>
 END;
@@ -126,16 +125,15 @@ END;
          * form to run the update stage
          */
         $prompt = s('phplist zip file extracted, now update the phpList code');
-        $query = htmlspecialchars(http_build_query(array_diff_key($_GET, ['stage' => ''])));
         echo <<<END
         <p>$prompt</p>
-        <form method="POST" action="./?$query">
+        <form method="POST">
             <button type="submit" name="stage" value="3">Update phpList code</button>
         </form>
 END;
         break;
     case 4:
-        $successMessage = s('phpList code has been updated to version %s', $latestVersion);
+        $successMessage = s('phpList code has been updated to version %s', $versionToInstall);
         printf(
             '<p>%s</p><p>%s</p>',
             $successMessage,
