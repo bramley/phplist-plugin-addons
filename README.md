@@ -17,6 +17,7 @@ The recommended way to install is through the Plugins page (menu Config > Manage
 ## Version history ##
 
     version         Description
+    1.7.0+20190319  Support downloading .tgz file instead of .zip
     1.6.0+20190312  Verify MD5 hash of downloaded files
     1.5.2+20190308  Update the requirements in README
     1.5.1+20190304  Test whether phplist and work directories are writeable

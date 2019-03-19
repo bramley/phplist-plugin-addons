@@ -24,19 +24,56 @@ namespace phpList\plugin\AddonsPlugin;
 
 use DirectoryIterator;
 use Exception;
+use PharData;
 use phpList\plugin\Common\Logger;
 use Symfony\Component\Filesystem\Filesystem;
 use ZipArchive;
 
+class ZipExtractor
+{
+    public function extension()
+    {
+        return 'zip';
+    }
+
+    public function extract($file, $dir)
+    {
+        $zip = new ZipArchive();
+
+        if (true !== ($error = $zip->open($file))) {
+            throw new Exception(s('Unable to open zip file, %s', $error));
+        }
+
+        if (!$zip->extractTo($dir)) {
+            throw new Exception(s('Unable to extract zip file'));
+        }
+        $zip->close();
+    }
+}
+
+class TgzExtractor
+{
+    public function extension()
+    {
+        return 'tgz';
+    }
+
+    public function extract($file, $dir)
+    {
+        $phar = new PharData($file);
+        $phar->extractTo($dir);
+    }
+}
+
 class Updater
 {
     private $basename;
-    private $zipFile;
-    private $zipUrl;
+    private $archiveFile;
+    private $archiveUrl;
     private $md5Url;
     private $workDir;
     private $distributionDir;
-    private $distributionZip;
+    private $distributionArchive;
     private $logger;
 
     public function __construct($version)
@@ -44,68 +81,64 @@ class Updater
         global $addonsUpdater;
 
         $this->basename = sprintf('phplist-%s', $version);
-        $this->zipFile = $this->basename . '.zip';
+        if (class_exists('PharData', false)) {
+            $this->extractor = new TgzExtractor();
+        } else {
+            $this->extractor = new ZipExtractor();
+        }
+        $this->archiveFile = sprintf('%s.%s', $this->basename, $this->extractor->extension());
         $urlTemplate = false === strpos($version, 'RC')
             ? 'https://sourceforge.net/projects/phplist/files/phplist/%s/%s/download'
             : 'https://sourceforge.net/projects/phplist/files/phplist-development/%s/%s/download';
-        $this->zipUrl = sprintf($urlTemplate, $version, $this->zipFile);
+        $this->archiveUrl = sprintf($urlTemplate, $version, $this->archiveFile);
         $this->md5Url = sprintf($urlTemplate, $version, $this->basename . '.md5');
         $this->workDir = $addonsUpdater['work'];
         $this->distributionDir = "$this->workDir/dist";
-        $this->distributionZip = "$this->workDir/$this->zipFile";
+        $this->distributionArchive = "$this->workDir/$this->archiveFile";
         $this->logger = Logger::instance();
     }
 
     public function downloadZipFile()
     {
         $filesMd5 = $this->parseMd5Contents(getUrl($this->md5Url));
-        $expectedMd5 = $filesMd5[$this->zipFile];
+        $expectedMd5 = $filesMd5[$this->archiveFile];
 
         // Use existing file if the MD5 is correct
-        if (file_exists($this->distributionZip)) {
-            $actualMd5 = md5_file($this->distributionZip);
-            $this->logger->debug(sprintf('expected md5 %s actual md5 %s', $expectedMd5, $actualMd5));
+        if (file_exists($this->distributionArchive)) {
+            $actualMd5 = md5_file($this->distributionArchive);
+            $this->logger->debug(sprintf('Expected md5 %s actual md5 %s', $expectedMd5, $actualMd5));
 
             if ($actualMd5 == $expectedMd5) {
-                $this->logger->debug(sprintf('Using existing zip file %s', $this->distributionZip));
+                $this->logger->debug(sprintf('Using existing archive file %s', $this->distributionArchive));
 
                 return;
             }
         }
-        $this->logger->debug(sprintf('Downloading %s', $this->zipUrl));
-        $zipContents = getUrl($this->zipUrl);
+        $this->logger->debug(sprintf('Downloading %s', $this->archiveUrl));
+        $archiveContents = getUrl($this->archiveUrl);
 
-        if (!$zipContents) {
+        if (!$archiveContents) {
             throw new Exception(s('Download failed'));
         }
-        $actualMd5 = md5($zipContents);
-        $this->logger->debug(sprintf('expected md5 %s actual md5 %s', $expectedMd5, $actualMd5));
+        $actualMd5 = md5($archiveContents);
+        $this->logger->debug(sprintf('Expected md5 %s actual md5 %s', $expectedMd5, $actualMd5));
 
         if ($actualMd5 != $expectedMd5) {
             throw new Exception(s('MD5 verification failed, expected %s actual %s', $expectedMd5, $actualMd5));
         }
-        $r = file_put_contents($this->distributionZip, $zipContents);
+        $r = file_put_contents($this->distributionArchive, $archiveContents);
 
         if (!$r) {
-            throw new Exception(s('Unable to save zip file'));
+            throw new Exception(s('Unable to save archive file'));
         }
-        $this->logger->debug('stored download');
+        $this->logger->debug('Stored download');
     }
 
     public function extractZipFile()
     {
-        $zip = new ZipArchive();
-
-        if (true !== ($error = $zip->open($this->distributionZip))) {
-            throw new Exception(s('Unable to open zip file, %s', $error));
-        }
-        $this->logger->debug('before extracting zip archive');
-
-        if (!$zip->extractTo($this->distributionDir)) {
-            throw new Exception(s('Unable to extract zip file'));
-        }
-        $zip->close();
-        $this->logger->debug('extracted zip archive');
+        $this->logger->debug('Extracting archive');
+        $this->extractor->extract($this->distributionArchive, $this->distributionDir);
+        $this->logger->debug('After extracting archive');
     }
 
     public function replaceFiles()
@@ -155,7 +188,7 @@ class Updater
 
             if (file_exists($targetName)) {
                 $fs->rename($targetName, $backupName);
-                $this->logger->debug("renamed $targetName");
+                $this->logger->debug("Renamed $targetName");
             }
 
             if (in_array($fileinfo->getFilename(), $doNotInstall)) {
@@ -176,17 +209,17 @@ class Updater
                 if (is_dir($sourceName)) {
                     $fs->mkdir($targetName, 0755);
                     $fs->mirror($sourceName, $targetName, null, ['override' => true]);
-                    $this->logger->debug("copied directory $sourceName to $targetName");
+                    $this->logger->debug("Copied directory $sourceName");
                 } else {
                     $fs->copy($sourceName, $targetName, true);
-                    $this->logger->debug("copied file $sourceName to $targetName");
+                    $this->logger->debug("Copied file $sourceName");
                 }
             }
         }
 
         // tidy-up
         $fs->remove($this->distributionDir);
-        $this->logger->debug('deleted distribution directory');
+        $this->logger->debug('Deleted distribution directory');
     }
 
     private function parseMd5Contents($md5Contents)
