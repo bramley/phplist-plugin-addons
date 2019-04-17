@@ -31,11 +31,6 @@ use ZipArchive;
 
 class ZipExtractor
 {
-    public function extension()
-    {
-        return 'zip';
-    }
-
     public function extract($file, $dir)
     {
         $zip = new ZipArchive();
@@ -53,11 +48,6 @@ class ZipExtractor
 
 class TgzExtractor
 {
-    public function extension()
-    {
-        return 'tgz';
-    }
-
     public function extract($file, $dir)
     {
         $phar = new PharData($file);
@@ -70,6 +60,7 @@ class Updater
     private $basename;
     private $archiveFile;
     private $archiveUrl;
+    private $extractor;
     private $md5Url;
     private $workDir;
     private $distributionDir;
@@ -81,12 +72,9 @@ class Updater
         global $addonsUpdater;
 
         $this->basename = sprintf('phplist-%s', $version);
-        if (class_exists('PharData', false)) {
-            $this->extractor = new TgzExtractor();
-        } else {
-            $this->extractor = new ZipExtractor();
-        }
-        $this->archiveFile = sprintf('%s.%s', $this->basename, $this->extractor->extension());
+        $archiveExtension = isset($addonsUpdater['archive_extension']) ? $addonsUpdater['archive_extension'] : 'zip';
+        $this->extractor = $archiveExtension == 'tgz' ? new TgzExtractor() : new ZipExtractor();
+        $this->archiveFile = sprintf('%s.%s', $this->basename, $archiveExtension);
         $urlTemplate = false === strpos($version, 'RC')
             ? 'https://sourceforge.net/projects/phplist/files/phplist/%s/%s/download'
             : 'https://sourceforge.net/projects/phplist/files/phplist-development/%s/%s/download';
@@ -100,6 +88,7 @@ class Updater
 
     public function downloadZipFile()
     {
+        $this->logger->debug("Fetching MD5 file $this->md5Url");
         $filesMd5 = $this->parseMd5Contents(getUrl($this->md5Url));
         $expectedMd5 = $filesMd5[$this->archiveFile];
 
@@ -132,13 +121,43 @@ class Updater
             throw new Exception(s('Unable to save archive file'));
         }
         $this->logger->debug('Stored download');
+        $this->logger->debug(sprintf('peak memory usage %s %s', formatBytes(memory_get_peak_usage()), formatBytes(memory_get_peak_usage(true))));
     }
 
     public function extractZipFile()
     {
+        global $addonsUpdater;
+
+        if (isset($addonsUpdater['memory_limit'])) {
+            $memoryLimit = $addonsUpdater['memory_limit'];
+            $oldValue = ini_set('memory_limit', $memoryLimit);
+
+            if ($oldValue === false) {
+                $this->logger->debug('Unable to change memory_limit');
+            } else {
+                $this->logger->debug("Changed memory_limit from $oldValue to $memoryLimit");
+            }
+        }
+
+        if (isset($addonsUpdater['max_execution_time'])) {
+            $maxExecutionTime = $addonsUpdater['max_execution_time'];
+            $oldValue = ini_set('max_execution_time', $maxExecutionTime);
+
+            if ($oldValue === false) {
+                $this->logger->debug('Unable to change max_execution_time');
+            } else {
+                $this->logger->debug("Changed max_execution_time from $oldValue to $maxExecutionTime");
+            }
+        }
+        $fs = new Filesystem();
+
+        if (file_exists($this->distributionDir)) {
+            $fs->remove($this->distributionDir);
+        }
         $this->logger->debug('Extracting archive');
         $this->extractor->extract($this->distributionArchive, $this->distributionDir);
-        $this->logger->debug('After extracting archive');
+        $this->logger->debug('Archive extracted');
+        $this->logger->debug(sprintf('peak memory usage %s %s', formatBytes(memory_get_peak_usage()), formatBytes(memory_get_peak_usage(true))));
     }
 
     public function replaceFiles()
@@ -220,6 +239,7 @@ class Updater
         // tidy-up
         $fs->remove($this->distributionDir);
         $this->logger->debug('Deleted distribution directory');
+        $this->logger->debug(sprintf('peak memory usage %s %s', formatBytes(memory_get_peak_usage()), formatBytes(memory_get_peak_usage(true))));
     }
 
     private function parseMd5Contents($md5Contents)

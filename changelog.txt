@@ -1,3 +1,7 @@
+version 1.7.1+20190418
+      Allow setting of memory limit and maximum execution time
+      Make 'zip' the default archive extension
+
 version 1.7.0+20190319
       Support downloading .tgz file
 
