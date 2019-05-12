@@ -142,6 +142,7 @@ END;
         logEvent($successMessage);
         break;
     case 'error':
+        logEvent($_SESSION['update_result']);
         echo $_SESSION['update_result'];
         unset($_SESSION['update_result']);
         break;
