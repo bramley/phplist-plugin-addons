@@ -84,6 +84,28 @@ class Updater
         $this->distributionDir = "$this->workDir/dist";
         $this->distributionArchive = "$this->workDir/$this->archiveFile";
         $this->logger = Logger::instance();
+
+        if (isset($addonsUpdater['memory_limit'])) {
+            $memoryLimit = $addonsUpdater['memory_limit'];
+            $oldValue = ini_set('memory_limit', $memoryLimit);
+
+            if ($oldValue === false) {
+                $this->logger->debug('Unable to change memory_limit');
+            } else {
+                $this->logger->debug("Changed memory_limit from $oldValue to $memoryLimit");
+            }
+        }
+
+        if (isset($addonsUpdater['max_execution_time'])) {
+            $maxExecutionTime = $addonsUpdater['max_execution_time'];
+            $oldValue = ini_set('max_execution_time', $maxExecutionTime);
+
+            if ($oldValue === false) {
+                $this->logger->debug('Unable to change max_execution_time');
+            } else {
+                $this->logger->debug("Changed max_execution_time from $oldValue to $maxExecutionTime");
+            }
+        }
     }
 
     public function downloadZipFile()
@@ -126,29 +148,6 @@ class Updater
 
     public function extractZipFile()
     {
-        global $addonsUpdater;
-
-        if (isset($addonsUpdater['memory_limit'])) {
-            $memoryLimit = $addonsUpdater['memory_limit'];
-            $oldValue = ini_set('memory_limit', $memoryLimit);
-
-            if ($oldValue === false) {
-                $this->logger->debug('Unable to change memory_limit');
-            } else {
-                $this->logger->debug("Changed memory_limit from $oldValue to $memoryLimit");
-            }
-        }
-
-        if (isset($addonsUpdater['max_execution_time'])) {
-            $maxExecutionTime = $addonsUpdater['max_execution_time'];
-            $oldValue = ini_set('max_execution_time', $maxExecutionTime);
-
-            if ($oldValue === false) {
-                $this->logger->debug('Unable to change max_execution_time');
-            } else {
-                $this->logger->debug("Changed max_execution_time from $oldValue to $maxExecutionTime");
-            }
-        }
         $fs = new Filesystem();
 
         if (file_exists($this->distributionDir)) {

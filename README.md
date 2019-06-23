@@ -17,6 +17,7 @@ The recommended way to install is through the Plugins page (menu Config > Manage
 ## Version history ##
 
     version         Description
+    1.7.2+20190623  Set max execution time and memory limit for all updater stages
     1.7.1+20190418  Download zip phplist archive file as default
     1.7.0+20190319  Support downloading .tgz file instead of .zip
     1.6.0+20190312  Verify MD5 hash of downloaded files

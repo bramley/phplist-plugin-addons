@@ -1,3 +1,7 @@
+version 1.7.2+20190623
+      Log an event when an update stage fails
+      Set max execution time and memory limit for all updater stages
+
 version 1.7.1+20190418
       Allow setting of memory limit and maximum execution time
       Make 'zip' the default archive extension
