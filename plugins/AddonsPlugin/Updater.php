@@ -40,7 +40,7 @@ class ZipExtractor
         }
 
         if (!$zip->extractTo($dir)) {
-            throw new Exception(s('Unable to extract zip file'));
+            throw new Exception(s('Unable to extract zip file %s to %s', $file, $dir));
         }
         $zip->close();
     }
@@ -129,7 +129,7 @@ class Updater
         $archiveContents = getUrl($this->archiveUrl);
 
         if (!$archiveContents) {
-            throw new Exception(s('Download failed'));
+            throw new Exception(s('Download of %s failed', $this->archiveUrl));
         }
         $actualMd5 = md5($archiveContents);
         $this->logger->debug(sprintf('Expected md5 %s actual md5 %s', $expectedMd5, $actualMd5));
@@ -140,7 +140,7 @@ class Updater
         $r = file_put_contents($this->distributionArchive, $archiveContents);
 
         if (!$r) {
-            throw new Exception(s('Unable to save archive file'));
+            throw new Exception(s('Unable to save archive file %s', $this->distributionArchive));
         }
         $this->logger->debug('Stored download');
         $this->logger->debug(sprintf('peak memory usage %s %s', formatBytes(memory_get_peak_usage()), formatBytes(memory_get_peak_usage(true))));
