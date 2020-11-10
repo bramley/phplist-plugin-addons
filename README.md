@@ -17,6 +17,7 @@ The recommended way to install is through the Plugins page (menu Config > Manage
 ## Version history ##
 
     version         Description
+    1.8.0+20201110  Add page to export the event log
     1.7.3+20200306  Improvements to error reporting
     1.7.2+20190623  Set max execution time and memory limit for all updater stages
     1.7.1+20190418  Download zip phplist archive file as default

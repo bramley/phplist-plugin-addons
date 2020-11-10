@@ -27,6 +27,12 @@ class AddonsPlugin extends phplistPlugin
     public $name = 'Addons Plugin';
     public $authors = 'Duncan Cameron';
     public $description = 'Additional functions for phpList';
+    public $topMenuLinks = [
+        'exportlog' => ['category' => 'system'],
+    ];
+    public $pageTitles = [
+        'exportlog' => 'Export the event log',
+     ];
 
     public function __construct()
     {
@@ -48,12 +54,8 @@ class AddonsPlugin extends phplistPlugin
         global $addonsUpdater;
 
         if (isset($addonsUpdater)) {
-            $this->topMenuLinks = [
-                'update' => array('category' => 'system'),
-            ];
-            $this->pageTitles = [
-                'update' => 'Alternative updater',
-            ];
+            $this->topMenuLinks['update'] = ['category' => 'system'];
+            $this->pageTitles['update'] = 'Alternative updater';
         }
         $this->settings = array(
             'addons_remote_processing_log' => array(
