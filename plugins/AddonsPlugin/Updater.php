@@ -177,6 +177,12 @@ class Updater
 
         $listsDir = $_SERVER['DOCUMENT_ROOT'] . $pageroot;
         $backupDir = sprintf('%s/lists_%s_%s', $this->workDir, VERSION, date('YmdHis'));
+        $exists = file_exists($distListsDir = "$this->distributionDir/$this->basename/public_html/lists")
+            || file_exists($distListsDir = "$this->distributionDir/phplist/public_html/lists");
+
+        if (!$exists) {
+            throw new Exception('Unable to find top level directory of distribution file');
+        }
 
         // create set of specific files and directories to be copied from the backup
         $additionalFiles = [];
@@ -188,7 +194,7 @@ class Updater
 
         if (PLUGIN_ROOTDIR == 'plugins' || realpath(PLUGIN_ROOTDIR) == realpath('plugins')) {
             // plugins are in the default location, copy additional files and directories
-            $distPlugins = scandir("$this->distributionDir/$this->basename/public_html/lists/admin/plugins");
+            $distPlugins = scandir("$distListsDir/admin/plugins");
             $installedPlugins = scandir("$listsDir/admin/plugins");
             $additional = array_diff($installedPlugins, $distPlugins);
 
@@ -205,14 +211,7 @@ class Updater
         $fs->mkdir($backupDir, 0755);
 
         // backup and move the files and directories in the distribution /lists directory
-
-        $exists = file_exists($d = "$this->distributionDir/$this->basename/public_html/lists")
-            || file_exists($d = "$this->distributionDir/phplist/public_html/lists");
-
-        if (!$exists) {
-            throw new Exception('Unable to find top level directory of distribution file');
-        }
-        $it = new DirectoryIterator($d);
+        $it = new DirectoryIterator($distListsDir);
         $doNotInstall = isset($addonsUpdater['do_not_install']) ? $addonsUpdater['do_not_install'] : [];
 
         foreach ($it as $fileinfo) {
