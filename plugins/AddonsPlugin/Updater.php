@@ -29,6 +29,10 @@ use phpList\plugin\Common\Logger;
 use Symfony\Component\Filesystem\Filesystem;
 use ZipArchive;
 
+class MD5Exception extends Exception
+{
+}
+
 class ZipExtractor
 {
     public function extract($file, $dir)
@@ -131,18 +135,19 @@ class Updater
         if (!$archiveContents) {
             throw new Exception(s('Download of %s failed', $this->archiveUrl));
         }
-        $actualMd5 = md5($archiveContents);
-        $this->logger->debug(sprintf('Expected md5 %s actual md5 %s', $expectedMd5, $actualMd5));
-
-        if ($actualMd5 != $expectedMd5) {
-            throw new Exception(s('MD5 verification failed, expected %s actual %s', $expectedMd5, $actualMd5));
-        }
         $r = file_put_contents($this->distributionArchive, $archiveContents);
 
         if (!$r) {
             throw new Exception(s('Unable to save archive file %s', $this->distributionArchive));
         }
         $this->logger->debug('Stored download');
+
+        $actualMd5 = md5($archiveContents);
+        $this->logger->debug(sprintf('Expected md5 %s actual md5 %s', $expectedMd5, $actualMd5));
+
+        if ($actualMd5 != $expectedMd5) {
+            throw new MD5Exception(s('MD5 verification failed, expected %s actual %s', $expectedMd5, $actualMd5));
+        }
         $this->logger->debug(sprintf('peak memory usage %s %s', formatBytes(memory_get_peak_usage()), formatBytes(memory_get_peak_usage(true))));
     }
 
@@ -194,7 +199,13 @@ class Updater
 
         // backup and move the files and directories in the distribution /lists directory
 
-        $it = new DirectoryIterator("$this->distributionDir/$this->basename/public_html/lists");
+        $exists = file_exists($d = "$this->distributionDir/$this->basename/public_html/lists")
+            || file_exists($d = "$this->distributionDir/phplist/public_html/lists");
+
+        if (!$exists) {
+            throw new Exception('Unable to find top level directory of distribution file');
+        }
+        $it = new DirectoryIterator($d);
         $doNotInstall = isset($addonsUpdater['do_not_install']) ? $addonsUpdater['do_not_install'] : [];
 
         foreach ($it as $fileinfo) {

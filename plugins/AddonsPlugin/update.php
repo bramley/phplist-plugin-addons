@@ -64,6 +64,9 @@ if (isset($_POST['stage'])) {
                 $nextStage = 4;
                 break;
         }
+    } catch (MD5Exception $e) {
+        $_SESSION['update_result'] = $e->getMessage();
+        $nextStage = 'md5error';
     } catch (Exception $e) {
         $_SESSION['update_result'] = $e->getMessage();
         $nextStage = 'error';
@@ -141,6 +144,18 @@ END;
         );
         logEvent($successMessage);
         break;
+    case 'md5error':
+        // Allow continuing after MD5 error
+        $prompt = $_SESSION['update_result'];
+        echo <<<END
+        <p>$prompt</p>
+        <form method="POST">
+            <button type="submit" name="stage" value="2">Ignore and continue to extract zip file</button>
+        </form>
+        <a class="button" href=".">Cancel</a>
+END;
+        break;
+
     case 'error':
         logEvent($_SESSION['update_result']);
         echo $_SESSION['update_result'];
