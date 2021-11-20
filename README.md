@@ -17,6 +17,7 @@ The recommended way to install is through the Plugins page (menu Config > Manage
 ## Version history ##
 
     version         Description
+    1.9.0+20211120  Allow updater to continue after an MD5 error
     1.8.0+20201110  Add page to export the event log
     1.7.3+20200306  Improvements to error reporting
     1.7.2+20190623  Set max execution time and memory limit for all updater stages

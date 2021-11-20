@@ -115,18 +115,22 @@ class Updater
     public function downloadZipFile()
     {
         $this->logger->debug("Fetching MD5 file $this->md5Url");
-        $filesMd5 = $this->parseMd5Contents(getUrl($this->md5Url));
-        $expectedMd5 = $filesMd5[$this->archiveFile];
+        $md5Contents = getUrl($this->md5Url);
 
-        // Use existing file if the MD5 is correct
-        if (file_exists($this->distributionArchive)) {
-            $actualMd5 = md5_file($this->distributionArchive);
-            $this->logger->debug(sprintf('Expected md5 %s actual md5 %s', $expectedMd5, $actualMd5));
+        if ($md5Contents != '') {
+            $filesMd5 = $this->parseMd5Contents($md5Contents);
+            $expectedMd5 = $filesMd5[$this->archiveFile];
 
-            if ($actualMd5 == $expectedMd5) {
-                $this->logger->debug(sprintf('Using existing archive file %s', $this->distributionArchive));
+            // Use existing file if the MD5 is correct
+            if (file_exists($this->distributionArchive)) {
+                $actualMd5 = md5_file($this->distributionArchive);
+                $this->logger->debug(sprintf('Expected md5 %s actual md5 %s', $expectedMd5, $actualMd5));
 
-                return;
+                if ($actualMd5 == $expectedMd5) {
+                    $this->logger->debug(sprintf('Using existing archive file %s', $this->distributionArchive));
+
+                    return;
+                }
             }
         }
         $this->logger->debug(sprintf('Downloading %s', $this->archiveUrl));
@@ -142,6 +146,9 @@ class Updater
         }
         $this->logger->debug('Stored download');
 
+        if ($md5Contents == '') {
+            throw new MD5Exception(s('Unable to verify MD5, file "%s" does not exist', $this->md5Url));
+        }
         $actualMd5 = md5($archiveContents);
         $this->logger->debug(sprintf('Expected md5 %s actual md5 %s', $expectedMd5, $actualMd5));
 
