@@ -24,25 +24,8 @@ namespace phpList\plugin\AddonsPlugin;
 
 use Exception;
 
-function getUrl($url)
-{
-    if (ini_get('allow_url_fopen') == '1') {
-        $content = file_get_contents($url);
-    } else {
-        $content = fetchUrlCurl($url, ['timeout' => 600]);
-    }
-
-    return $content;
-}
-
-if (!(ini_get('allow_url_fopen') == '1' || function_exists('curl_init'))) {
-    echo 'curl or URL-aware fopen wrappers are required', '<br/>';
-
-    return;
-}
-
 if (!isset($_SESSION['addons_version'])) {
-    $_SESSION['addons_version'] = json_decode(getUrl('https://download.phplist.org/version.json'));
+    $_SESSION['addons_version'] = json_decode(fetchUrlDirect('https://download.phplist.org/version.json'));
 }
 $versionToInstall = empty($_GET['force']) ? $_SESSION['addons_version']->version : $_GET['force'];
 
@@ -97,9 +80,9 @@ switch ($stage) {
         /*
          * form to run the download stage
          */
-        $prompt = empty($_GET['force'])
-            ? s('phpList version %s is available', $versionToInstall)
-            : s('Forcing installation of phpList version %s', $versionToInstall);
+        $prompt = isset($_GET['force'])
+            ? s('Forcing installation of phpList version %s', $versionToInstall)
+            : s('phpList version %s is available', $versionToInstall);
         $warning = false !== strpos($versionToInstall, 'RC')
             ? s('Note that the latest version is a release candidate, which is not for general use.')
             : '';
@@ -128,8 +111,10 @@ END;
          * form to run the update stage
          */
         $prompt = s('phplist zip file extracted, now update the phpList code');
+        $backup = s('A backup of the phpList code will be made in %s', sprintf('<code>%s</code>', $addonsUpdater['work']));
         echo <<<END
         <p>$prompt</p>
+        <p>$backup</p>
         <form method="POST">
             <button type="submit" name="stage" value="3">Update phpList code</button>
         </form>

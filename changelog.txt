@@ -1,3 +1,6 @@
+version 1.10.0+20220116
+      Use core phplist function fetchUrlDirect()
+
 version 1.9.1+20211120
       Top level dir of distribution can be phplist or phplist-version
 

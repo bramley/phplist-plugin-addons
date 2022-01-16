@@ -61,22 +61,23 @@ class TgzExtractor
 
 class Updater
 {
-    private $basename;
     private $archiveFile;
     private $archiveUrl;
-    private $extractor;
-    private $md5Url;
-    private $workDir;
+    private $basename;
     private $distributionDir;
     private $distributionArchive;
+    private $extractor;
     private $logger;
+    private $md5Url;
+    private $timeout;
+    private $workDir;
 
     public function __construct($version)
     {
         global $addonsUpdater;
 
         $this->basename = sprintf('phplist-%s', $version);
-        $archiveExtension = isset($addonsUpdater['archive_extension']) ? $addonsUpdater['archive_extension'] : 'zip';
+        $archiveExtension = $addonsUpdater['archive_extension'] ?? 'zip';
         $this->extractor = $archiveExtension == 'tgz' ? new TgzExtractor() : new ZipExtractor();
         $this->archiveFile = sprintf('%s.%s', $this->basename, $archiveExtension);
         $urlTemplate = false === strpos($version, 'RC')
@@ -88,6 +89,7 @@ class Updater
         $this->distributionDir = "$this->workDir/dist";
         $this->distributionArchive = "$this->workDir/$this->archiveFile";
         $this->logger = Logger::instance();
+        $this->timeout = $addonsUpdater['timeout'] ?? 60;
 
         if (isset($addonsUpdater['memory_limit'])) {
             $memoryLimit = $addonsUpdater['memory_limit'];
@@ -115,7 +117,7 @@ class Updater
     public function downloadZipFile()
     {
         $this->logger->debug("Fetching MD5 file $this->md5Url");
-        $md5Contents = getUrl($this->md5Url);
+        $md5Contents = fetchUrlDirect($this->md5Url);
 
         if ($md5Contents != '') {
             $filesMd5 = $this->parseMd5Contents($md5Contents);
@@ -134,7 +136,7 @@ class Updater
             }
         }
         $this->logger->debug(sprintf('Downloading %s', $this->archiveUrl));
-        $archiveContents = getUrl($this->archiveUrl);
+        $archiveContents = fetchUrlDirect($this->archiveUrl, ['timeout' => $this->timeout]);
 
         if (!$archiveContents) {
             throw new Exception(s('Download of %s failed', $this->archiveUrl));
@@ -176,7 +178,7 @@ class Updater
         global $addonsUpdater, $pageroot, $configfile;
 
         $listsDir = $_SERVER['DOCUMENT_ROOT'] . $pageroot;
-        $backupDir = sprintf('%s/lists_%s_%s', $this->workDir, VERSION, date('YmdHis'));
+        $backupDir = sprintf('%s/phplist_backup_%s_%s', $this->workDir, VERSION, date('YmdHis'));
         $exists = file_exists($distListsDir = "$this->distributionDir/$this->basename/public_html/lists")
             || file_exists($distListsDir = "$this->distributionDir/phplist/public_html/lists");
 

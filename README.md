@@ -1,4 +1,4 @@
-# Addons Plugin #
+    # Addons Plugin #
 
 ## Description ##
 This plugin adds various small features to phpList which aren't worth implementing as individual plugins.
@@ -8,7 +8,7 @@ Each feature can be enabled separately through the plugin's group on the Setting
 
 ### Dependencies ###
 
-This plugin requires phplist 3.3.2 or later, requires php version 5.6 or later, and also requires the Common plugin to be enabled.
+This plugin requires phplist 3.5.4 or later, requires php version 7 or later, and also requires the Common plugin to be enabled.
 
 ### Install through phplist ###
 The recommended way to install is through the Plugins page (menu Config > Manage plugins) using the package URL
@@ -17,6 +17,7 @@ The recommended way to install is through the Plugins page (menu Config > Manage
 ## Version history ##
 
     version         Description
+    1.10.0+20220116 Minor changes, now required php 7
     1.9.1+20211120  Correct identification of top level directory
     1.9.0+20211120  Allow updater to continue after an MD5 error
     1.8.0+20201110  Add page to export the event log
