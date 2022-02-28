@@ -73,6 +73,13 @@ class AddonsPlugin extends phplistPlugin
                 'allowempty' => true,
                 'category' => 'Addons',
             ),
+            'addons_http_referrer' => array(
+                'description' => s('Verify that subscription requests originate from this website'),
+                'type' => 'boolean',
+                'value' => false,
+                'allowempty' => true,
+                'category' => 'Addons',
+            ),
         );
         parent::activate();
     }
@@ -103,6 +110,48 @@ class AddonsPlugin extends phplistPlugin
         }
 
         return $textmessage;
+    }
+
+    /**
+     * Verify that a subscription request originated from this web site by
+     * checking the HTTP_REFERER header.
+     * If the header is not correct then return a 404 status code to try to stop the originator repeating
+     * subscription requests.
+     *
+     * @param array $pageData subscribe page fields
+     *
+     * @return string an empty string when validation is successful
+     */
+    public function validateSubscriptionPage($pageData)
+    {
+        if (!getConfig('addons_http_referrer')) {
+            return '';
+        }
+
+        if ($_GET['p'] == 'asubscribe' || $_GET['p'] == 'preferences') {
+            return '';
+        }
+
+        if (!isset($_POST['email'])) {
+            return '';
+        }
+        $website = getConfig('website');
+
+        if (isset($_SERVER['HTTP_REFERER']) && strpos($_SERVER['HTTP_REFERER'], $website) !== false) {
+            return '';
+        }
+        $headers = array_intersect_key(
+            $_SERVER,
+            array_flip(['HTTP_USER_AGENT', 'HTTP_REFERER', 'REMOTE_ADDR', 'REQUEST_URI'])
+        );
+        $headersDump = print_r($headers, true);
+        $headersDump = strstr($headersDump, '[');
+        $headersDump = rtrim($headersDump, "\n)");
+        logEvent("Subscription by {$_POST['email']} does not have acceptable HTTP_REFERER " . $headersDump);
+
+        ob_end_clean();
+        header('HTTP/1.0 404 Not Found');
+        exit;
     }
 
     private function remoteQueueLog($sent, $invalid, $failed_sent, $unconfirmed, $counters)

@@ -1,3 +1,6 @@
+version 1.11.0+20220228
+      Validate subscribe page request for a valid HTTP_REFERER header
+
 version 1.10.0+20220116
       Use core phplist function fetchUrlDirect()
 
