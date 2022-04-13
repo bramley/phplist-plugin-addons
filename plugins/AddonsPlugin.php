@@ -27,6 +27,7 @@ class AddonsPlugin extends phplistPlugin
     public $name = 'Addons Plugin';
     public $authors = 'Duncan Cameron';
     public $description = 'Additional functions for phpList';
+    public $documentationUrl = 'https://resources.phplist.com/plugin/addons';
     public $topMenuLinks = [
         'exportlog' => ['category' => 'system'],
     ];
