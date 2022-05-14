@@ -1,3 +1,6 @@
+version 1.11.2+20220514
+      Allow forcing a re-install of the currently installed version
+
 version 1.11.1+20220413
       Add documentation URL
 

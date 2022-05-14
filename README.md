@@ -17,6 +17,7 @@ The recommended way to install is through the Plugins page (menu Config > Manage
 ## Version history ##
 
     version         Description
+    1.11.2+20220514 Allow forcing a re-install of the currently installed version
     1.11.1+20220413 Add documentation URL
     1.11.0+20220228 Validate subscribe page request for a valid HTTP_REFERER header
     1.10.0+20220116 Minor changes, now required php 7

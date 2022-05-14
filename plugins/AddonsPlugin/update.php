@@ -27,7 +27,7 @@ use Exception;
 if (!isset($_SESSION['addons_version'])) {
     $_SESSION['addons_version'] = json_decode(fetchUrlDirect('https://download.phplist.org/version.json'));
 }
-$versionToInstall = empty($_GET['force']) ? $_SESSION['addons_version']->version : $_GET['force'];
+$versionToInstall = isset($_GET['force']) ? ($_GET['force'] ?: VERSION) : $_SESSION['addons_version']->version;
 
 if (isset($_POST['stage'])) {
     try {
