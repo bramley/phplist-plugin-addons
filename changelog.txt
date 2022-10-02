@@ -1,3 +1,6 @@
+version 1.11.3+20221003
+      Find the "lists" directory within the distribution directory
+
 version 1.11.2+20220514
       Allow forcing a re-install of the currently installed version
 

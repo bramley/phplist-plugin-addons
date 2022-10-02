@@ -24,8 +24,11 @@ namespace phpList\plugin\AddonsPlugin;
 
 use DirectoryIterator;
 use Exception;
+use FilesystemIterator;
 use PharData;
 use phpList\plugin\Common\Logger;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use Symfony\Component\Filesystem\Filesystem;
 use ZipArchive;
 
@@ -179,8 +182,22 @@ class Updater
 
         $listsDir = $_SERVER['DOCUMENT_ROOT'] . $pageroot;
         $backupDir = sprintf('%s/phplist_backup_%s_%s', $this->workDir, VERSION, date('YmdHis'));
-        $exists = file_exists($distListsDir = "$this->distributionDir/$this->basename/public_html/lists")
-            || file_exists($distListsDir = "$this->distributionDir/phplist/public_html/lists");
+
+        // find the "lists" directory within the distribution
+        $exists = false;
+        $it = new RecursiveDirectoryIterator(
+            $this->distributionDir,
+            FilesystemIterator::KEY_AS_PATHNAME | FilesystemIterator::CURRENT_AS_FILEINFO | FilesystemIterator::SKIP_DOTS
+        );
+
+        foreach (new RecursiveIteratorIterator($it, RecursiveIteratorIterator::SELF_FIRST) as $path => $fileinfo) {
+            if ($fileinfo->isDir() && $fileinfo->getFileName() == 'lists') {
+                $distListsDir = $path;
+                $this->logger->debug("Using $distListsDir as lists directory");
+                $exists = true;
+                break;
+            }
+        }
 
         if (!$exists) {
             throw new Exception('Unable to find top level directory of distribution file');
