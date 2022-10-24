@@ -17,6 +17,7 @@ The recommended way to install is through the Plugins page (menu Config > Manage
 ## Version history ##
 
     version         Description
+    1.11.4+20221024 Fix the test of config file being in the default location
     1.11.3+20221003 Find the "lists" directory within the distribution directory
     1.11.2+20220514 Allow forcing a re-install of the currently installed version
     1.11.1+20220413 Add documentation URL

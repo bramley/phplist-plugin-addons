@@ -206,7 +206,7 @@ class Updater
         // create set of specific files and directories to be copied from the backup
         $additionalFiles = [];
 
-        if ($configfile == '../config/config.php') {
+        if (realpath($configfile) == "$listsDir/config/config.php") {
             // config file is in the default location
             $additionalFiles[] = 'config/config.php';
         }
