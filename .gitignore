@@ -1,4 +1,4 @@
-.php_cs.cache
+*cache
 README.html
 
 plugins/AddonsPlugin/vendor/symfony/filesystem/*

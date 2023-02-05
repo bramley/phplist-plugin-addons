@@ -22,13 +22,13 @@
 
 namespace phpList\plugin\AddonsPlugin;
 
-use DirectoryIterator;
 use Exception;
 use FilesystemIterator;
 use PharData;
 use phpList\plugin\Common\Logger;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use SplFileInfo;
 use Symfony\Component\Filesystem\Filesystem;
 use ZipArchive;
 
@@ -230,13 +230,10 @@ class Updater
         $fs->mkdir($backupDir, 0755);
 
         // backup and move the files and directories in the distribution /lists directory
-        $it = new DirectoryIterator($distListsDir);
+        $it = new SortedFileSystemIterator($distListsDir);
         $doNotInstall = isset($addonsUpdater['do_not_install']) ? $addonsUpdater['do_not_install'] : [];
 
         foreach ($it as $fileinfo) {
-            if ($fileinfo->isDot()) {
-                continue;
-            }
             $targetName = $listsDir . '/' . $fileinfo->getFilename();
             $backupName = $backupDir . '/' . $fileinfo->getFilename();
 
@@ -246,15 +243,24 @@ class Updater
             }
 
             if (in_array($fileinfo->getFilename(), $doNotInstall)) {
-                $this->logger->debug("not installing $targetName");
+                $this->logger->debug("Not installing $targetName");
             } else {
                 $fs->rename($fileinfo->getPathname(), $targetName);
-                $this->logger->debug("installed $targetName from distribution");
+                $this->logger->debug("Installed $targetName");
             }
         }
 
-        // copy additional files and directories from the backup
+        // remove files and directories not be installed
+        foreach ($doNotInstall as $relativePath) {
+            $file = "$listsDir/$relativePath";
 
+            if (file_exists($file)) {
+                $fs->remove($file);
+                $this->logger->debug("Removed $file");
+            }
+        }
+
+        // restore additional files and directories from the backup
         foreach ($additionalFiles as $relativePath) {
             $sourceName = "$backupDir/$relativePath";
             $targetName = "$listsDir/$relativePath";
@@ -263,10 +269,10 @@ class Updater
                 if (is_dir($sourceName)) {
                     $fs->mkdir($targetName, 0755);
                     $fs->mirror($sourceName, $targetName, null, ['override' => true]);
-                    $this->logger->debug("Copied directory $sourceName");
+                    $this->logger->debug("Restored directory $sourceName");
                 } else {
                     $fs->copy($sourceName, $targetName, true);
-                    $this->logger->debug("Copied file $sourceName");
+                    $this->logger->debug("Restored file $sourceName");
                 }
             }
         }
@@ -288,5 +294,23 @@ class Updater
         $this->logger->debug(print_r($md5, true));
 
         return $md5;
+    }
+}
+
+class SortedFileSystemIterator extends \ArrayIterator
+{
+    public function __construct(string $path)
+    {
+        parent::__construct(iterator_to_array(new FilesystemIterator($path)));
+
+        $this->uasort(
+            function (SplFileInfo $a, SplFileInfo $b) {
+                if ($a->isDir() && $b->isDir() || $a->isFile() && $b->isFile()) {
+                    return strnatcmp($a->getFilename(), $b->getFilename());
+                }
+
+                return $a->isFile() ? -1 : 1;
+            }
+        );
     }
 }

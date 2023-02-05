@@ -1,3 +1,7 @@
+version 1.11.5+20230205
+      Allow not installing files below the lists directory
+      Replace files in sorted file/directory order
+
 version 1.11.4+20221024
       Fix the test of config file being in the default location
 
