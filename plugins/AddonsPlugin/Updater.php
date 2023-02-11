@@ -230,7 +230,7 @@ class Updater
         $fs->mkdir($backupDir, 0755);
 
         // backup and move the files and directories in the distribution /lists directory
-        $it = new SortedFileSystemIterator($distListsDir);
+        $it = new SortedFileIterator(new FilesystemIterator($distListsDir));
         $doNotInstall = isset($addonsUpdater['do_not_install']) ? $addonsUpdater['do_not_install'] : [];
 
         foreach ($it as $fileinfo) {
@@ -297,11 +297,11 @@ class Updater
     }
 }
 
-class SortedFileSystemIterator extends \ArrayIterator
+class SortedFileIterator extends \ArrayIterator
 {
-    public function __construct(string $path)
+    public function __construct(FilesystemIterator $it)
     {
-        parent::__construct(iterator_to_array(new FilesystemIterator($path)));
+        parent::__construct(iterator_to_array($it));
 
         $this->uasort(
             function (SplFileInfo $a, SplFileInfo $b) {
