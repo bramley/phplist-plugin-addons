@@ -256,7 +256,7 @@ class Updater
 
             if (file_exists($file)) {
                 $fs->remove($file);
-                $this->logger->debug("Removed $file");
+                $this->logger->debug("Removed $relativePath");
             }
         }
 
@@ -269,11 +269,10 @@ class Updater
                 if (is_dir($sourceName)) {
                     $fs->mkdir($targetName, 0755);
                     $fs->mirror($sourceName, $targetName, null, ['override' => true]);
-                    $this->logger->debug("Restored directory $sourceName");
                 } else {
                     $fs->copy($sourceName, $targetName, true);
-                    $this->logger->debug("Restored file $sourceName");
                 }
+                $this->logger->debug("Restored $relativePath");
             }
         }
 
