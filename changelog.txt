@@ -1,3 +1,7 @@
+version 1.11.6+20230217
+      Simplify logging messages
+      Use scandir instead of file system iterator
+
 version 1.11.5+20230205
       Allow not installing files below the lists directory
       Replace files in sorted file/directory order

@@ -28,7 +28,6 @@ use PharData;
 use phpList\plugin\Common\Logger;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use SplFileInfo;
 use Symfony\Component\Filesystem\Filesystem;
 use ZipArchive;
 
@@ -230,22 +229,25 @@ class Updater
         $fs->mkdir($backupDir, 0755);
 
         // backup and move the files and directories in the distribution /lists directory
-        $it = new SortedFileIterator(new FilesystemIterator($distListsDir));
         $doNotInstall = isset($addonsUpdater['do_not_install']) ? $addonsUpdater['do_not_install'] : [];
 
-        foreach ($it as $fileinfo) {
-            $targetName = $listsDir . '/' . $fileinfo->getFilename();
-            $backupName = $backupDir . '/' . $fileinfo->getFilename();
+        foreach (scandir($distListsDir) as $file) {
+            if ($file == '.' || $file == '..') {
+                continue;
+            }
+            $sourceName = $distListsDir . '/' . $file;
+            $targetName = $listsDir . '/' . $file;
+            $backupName = $backupDir . '/' . $file;
 
             if (file_exists($targetName)) {
                 $fs->rename($targetName, $backupName);
                 $this->logger->debug("Renamed $targetName");
             }
 
-            if (in_array($fileinfo->getFilename(), $doNotInstall)) {
+            if (in_array($file, $doNotInstall)) {
                 $this->logger->debug("Not installing $targetName");
             } else {
-                $fs->rename($fileinfo->getPathname(), $targetName);
+                $fs->rename($sourceName, $targetName);
                 $this->logger->debug("Installed $targetName");
             }
         }
@@ -293,23 +295,5 @@ class Updater
         $this->logger->debug(print_r($md5, true));
 
         return $md5;
-    }
-}
-
-class SortedFileIterator extends \ArrayIterator
-{
-    public function __construct(FilesystemIterator $it)
-    {
-        parent::__construct(iterator_to_array($it));
-
-        $this->uasort(
-            function (SplFileInfo $a, SplFileInfo $b) {
-                if ($a->isDir() && $b->isDir() || $a->isFile() && $b->isFile()) {
-                    return strnatcmp($a->getFilename(), $b->getFilename());
-                }
-
-                return $a->isFile() ? -1 : 1;
-            }
-        );
     }
 }
