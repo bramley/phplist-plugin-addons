@@ -57,7 +57,7 @@ class AddonsPlugin extends phplistPlugin
 
         if (isset($addonsUpdater)) {
             $this->topMenuLinks['update'] = ['category' => 'system'];
-            $this->pageTitles['update'] = 'Alternative updater';
+            $this->pageTitles['update'] = 'Update phpList';
         }
         $this->settings = array(
             'addons_remote_processing_log' => array(
