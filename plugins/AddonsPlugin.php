@@ -97,7 +97,7 @@ class AddonsPlugin extends phplistPlugin
         }
     }
 
-    public function processSendingCampaignFinished($messageId, $msgdata)
+    public function processSendingCampaignFinished($messageId, array $msgdata)
     {
         if (getConfig('addons_remote_processing_log')) {
             $this->remoteQueueCampaignFinished($messageId, $msgdata);
