@@ -19,7 +19,7 @@
  * @copyright 2018 Duncan Cameron
  * @license   http://www.gnu.org/licenses/gpl.html GNU General Public License, Version 3
  */
-class AddonsPlugin extends phplistPlugin
+class AddonsPlugin extends phplistPlugin implements Updater
 {
     const VERSION_FILE = 'version.txt';
     const PLUGIN = 'AddonsPlugin';
