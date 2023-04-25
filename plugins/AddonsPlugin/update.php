@@ -24,6 +24,17 @@ namespace phpList\plugin\AddonsPlugin;
 
 use Exception;
 
+if (!isset($addonsUpdater)) {
+    $link = sprintf(
+        '<a href="%s" target="_blank">%s</a>',
+        'https://resources.phplist.com/plugin/addons#phplist_updater',
+        'plugin documentation.'
+    );
+    echo sprintf('This plugin needs to be configured, see the %s', $link);
+
+    return;
+}
+
 if (!isset($_SESSION['addons_version'])) {
     $_SESSION['addons_version'] = json_decode(fetchUrlDirect('https://download.phplist.org/version.json'));
 }

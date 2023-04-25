@@ -17,6 +17,7 @@ The recommended way to install is through the Plugins page (menu Config > Manage
 ## Version history ##
 
     version         Description
+    1.12.0+20230427 Implement the Updater interface
     1.11.6+20230217 Improvement to logging
     1.11.5+20230205 Improvement to updater handling of files not to be installed
     1.11.4+20221024 Fix the test of config file being in the default location

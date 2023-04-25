@@ -1,3 +1,7 @@
+version 1.12.0+20230427
+      Correct method signature
+      Implement the Updater interface
+
 version 1.11.6+20230217
       Simplify logging messages
       Use scandir instead of file system iterator
