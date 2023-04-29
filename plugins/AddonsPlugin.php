@@ -19,17 +19,7 @@
  * @copyright 2018 Duncan Cameron
  * @license   http://www.gnu.org/licenses/gpl.html GNU General Public License, Version 3
  */
-if (interface_exists('Updater')) {
-    class AddonsPluginBase extends phplistPlugin implements Updater
-    {
-    }
-} else {
-    class AddonsPluginBase extends phplistPlugin
-    {
-    }
-}
-
-class AddonsPlugin extends AddonsPluginBase
+class AddonsPlugin extends phplistPlugin
 {
     const VERSION_FILE = 'version.txt';
     const PLUGIN = 'AddonsPlugin';
@@ -54,44 +44,38 @@ class AddonsPlugin extends AddonsPluginBase
 
     public function dependencyCheck()
     {
-        return array(
+        return [
             'phpList version 3.5.4 or greater' => version_compare(VERSION, '3.5.4') >= 0,
             'PHP version 7 or greater' => version_compare(PHP_VERSION, '7') > 0,
             'Common Plugin installed' => phpListPlugin::isEnabled('CommonPlugin'),
-        );
+        ];
     }
 
     public function activate()
     {
-        global $addonsUpdater;
-
-        if (isset($addonsUpdater)) {
-            $this->topMenuLinks['update'] = ['category' => 'system'];
-            $this->pageTitles['update'] = 'Alternative updater';
-        }
-        $this->settings = array(
-            'addons_remote_processing_log' => array(
+        $this->settings = [
+            'addons_remote_processing_log' => [
                 'value' => false,
                 'description' => s('Log events when using remote page processing'),
                 'type' => 'boolean',
                 'allowempty' => true,
                 'category' => 'Addons',
-            ),
-            'addons_exim_dot' => array(
+            ],
+            'addons_exim_dot' => [
                 'value' => false,
                 'description' => s('Workaround problem with Exim and line beginning with dot character'),
                 'type' => 'boolean',
                 'allowempty' => true,
                 'category' => 'Addons',
-            ),
-            'addons_http_referrer' => array(
+            ],
+            'addons_http_referrer' => [
                 'description' => s('Verify that subscription requests originate from this website'),
                 'type' => 'boolean',
                 'value' => false,
                 'allowempty' => true,
                 'category' => 'Addons',
-            ),
-        );
+            ],
+        ];
         parent::activate();
     }
 
