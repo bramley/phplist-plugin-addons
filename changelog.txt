@@ -1,3 +1,6 @@
+version 1.14.0+20230702
+      Add function to apply bounce rules when sending an email fails
+
 version 1.13.0+20230518
       Remove the updater functionality
 

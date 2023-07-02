@@ -16,9 +16,12 @@
  * @category  phplist
  *
  * @author    Duncan Cameron
- * @copyright 2018 Duncan Cameron
+ * @copyright 2018-2023 Duncan Cameron
  * @license   http://www.gnu.org/licenses/gpl.html GNU General Public License, Version 3
  */
+use phpList\plugin\Common\DAO\User;
+use phpList\plugin\Common\DB;
+
 class AddonsPlugin extends phplistPlugin
 {
     const VERSION_FILE = 'version.txt';
@@ -34,6 +37,8 @@ class AddonsPlugin extends phplistPlugin
     public $pageTitles = [
         'exportlog' => 'Export the event log',
      ];
+
+    private $mailer;
 
     public function __construct()
     {
@@ -70,6 +75,13 @@ class AddonsPlugin extends phplistPlugin
             ],
             'addons_http_referrer' => [
                 'description' => s('Verify that subscription requests originate from this website'),
+                'type' => 'boolean',
+                'value' => false,
+                'allowempty' => true,
+                'category' => 'Addons',
+            ],
+            'addons_process_send_fail' => [
+                'description' => s('Apply bounce rules when sending an email fails'),
                 'type' => 'boolean',
                 'value' => false,
                 'allowempty' => true,
@@ -147,6 +159,83 @@ class AddonsPlugin extends phplistPlugin
         ob_end_clean();
         header('HTTP/1.0 404 Not Found');
         exit;
+    }
+
+    /**
+     * Use this hook to save the instance of PHPMailer.
+     *
+     * @param PHPMailer\PHPMailer\PHPMailer $mail instance of PHPMailer
+     *
+     * @return array
+     */
+    public function messageHeaders($mailer)
+    {
+        $this->mailer = $mailer;
+
+        return [];
+    }
+
+    /**
+     * Apply bounce rules to the text of the error message when sending an email fails.
+     *
+     * @param messageid integer
+     * @param userdata  array
+     * @param isTest    boolean, true when testmessage
+     */
+    public function processSendFailed($messageid, $userdata, $isTest = false)
+    {
+        static $rules = null;
+        static $dao;
+
+        if (!getConfig('addons_process_send_fail')) {
+            return;
+        }
+
+        if ($rules === null) {
+            $rules = loadBounceRules();
+            $dao = new User(new DB());
+        }
+
+        foreach ($rules as $pattern => $rule) {
+            if (stripos($this->mailer->ErrorInfo, $pattern) !== false) {
+                $matched = $pattern;
+            } elseif (preg_match("/$pattern/i", $this->mailer->ErrorInfo, $matches)) {
+                $matched = $matches[0];
+            } else {
+                continue;
+            }
+            $reason = sprintf('processqueue send failed - %s', $matched);
+
+            switch ($rule['action']) {
+                case 'unconfirmuser':
+                case 'unconfirmuseranddeletebounce':
+                    $dao->unconfirmUser($userdata['email']);
+                    addUserHistory(
+                        $userdata['email'],
+                        s('Auto unconfirmed'),
+                        s('Subscriber auto unconfirmed for reason %s', $reason)
+                    );
+                    logEvent(s('Subscriber %s unconfirmed by bounce rule %s', $userdata['email'], $rule['id']));
+                    break;
+                case 'blacklistuser':
+                case 'blacklistuseranddeletebounce':
+                    addUserToBlackList($userdata['email'], $reason);
+                    logEvent(s('Subscriber %s blacklisted by bounce rule %s', $userdata['email'], $rule['id']));
+                    break;
+                case 'blacklistemail':
+                case 'blacklistemailanddeletebounce':
+                    addEmailToBlackList($userdata['email'], $reason);
+                    logEvent(s('email %s blacklisted by bounce rule %s', $userdata['email'], $rule['id']));
+                    break;
+                case 'deleteuser':
+                case 'deleteuserandbounce':
+                    deleteUser($userdata['id']);
+                    logEvent(s('Subscriber %s deleted by bounce rule %s', $userdata['email'], $rule['id']));
+                    break;
+                default:
+            }
+            break;
+        }
     }
 
     private function remoteQueueLog($sent, $invalid, $failed_sent, $unconfirmed, $counters)
