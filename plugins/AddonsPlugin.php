@@ -195,14 +195,20 @@ class AddonsPlugin extends phplistPlugin
             $rules = loadBounceRules();
             $dao = new User(new DB());
         }
+        // ErrorInfo seems to have new lines at arbitrary places
+        $errorText = str_replace("\r\n", ' ', $this->mailer->ErrorInfo);
 
         foreach ($rules as $pattern => $rule) {
-            if (stripos($this->mailer->ErrorInfo, $pattern) !== false) {
+            if (stripos($errorText, $pattern) !== false) {
                 $matched = $pattern;
-            } elseif (preg_match("/$pattern/i", $this->mailer->ErrorInfo, $matches)) {
-                $matched = $matches[0];
             } else {
-                continue;
+                $pattern = str_replace('~', '\~', $pattern);
+
+                if (preg_match("~$pattern~i", $errorText, $matches) === 1) {
+                    $matched = $matches[0];
+                } else {
+                    continue;
+                }
             }
             $reason = sprintf('processqueue send failed - %s', $matched);
 
@@ -231,6 +237,10 @@ class AddonsPlugin extends phplistPlugin
                 case 'deleteuserandbounce':
                     deleteUser($userdata['id']);
                     logEvent(s('Subscriber %s deleted by bounce rule %s', $userdata['email'], $rule['id']));
+                    break;
+                case 'deletebounce':
+                    // not applicable so just report it
+                    logEvent(s('Subscriber %s matched by bounce rule %s', $userdata['email'], $rule['id']));
                     break;
                 default:
             }

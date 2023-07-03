@@ -17,6 +17,7 @@ The recommended way to install is through the Plugins page (menu Config > Manage
 ## Version history ##
 
     version         Description
+    1.14.1+20231201 Improve matching of bounce rule
     1.14.0+20230702 Add function to apply bounce rules when sending an email fails
     1.13.0+20230518 Remove the updater functionality
     1.12.0+20230427 Implement the Updater interface
