@@ -94,6 +94,13 @@ class AddonsPlugin extends phplistPlugin
                 'allowempty' => true,
                 'category' => 'Addons',
             ],
+            'addons_remove_test_subject' => [
+                'description' => s('Remove the (test) prefix from the subject of a test campaign'),
+                'type' => 'boolean',
+                'value' => false,
+                'allowempty' => true,
+                'category' => 'Addons',
+            ],
         ];
         parent::activate();
     }
@@ -174,6 +181,7 @@ class AddonsPlugin extends phplistPlugin
 
     /**
      * Use this hook to save the instance of PHPMailer.
+     * Remove the prefix from a test campaign.
      *
      * @param PHPMailer\PHPMailer\PHPMailer $mail instance of PHPMailer
      *
@@ -182,6 +190,11 @@ class AddonsPlugin extends phplistPlugin
     public function messageHeaders($mailer)
     {
         $this->mailer = $mailer;
+
+        if (getConfig('addons_remove_test_subject')) {
+            $mailer->Subject = str_replace(s('(test)'), '', $mailer->Subject);
+            $mailer->Subject = trim($mailer->Subject);
+        }
 
         return [];
     }

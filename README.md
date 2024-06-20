@@ -17,6 +17,7 @@ The recommended way to install is through the Plugins page (menu Config > Manage
 ## Version history ##
 
     version         Description
+    1.16.0+20240629 Remove the (test) prefix from the subject of a test campaign
     1.15.0+20240627 Mark campaign as sent when all attempts fail
     1.14.1+20231201 Improve matching of bounce rule
     1.14.0+20230702 Add function to apply bounce rules when sending an email fails
