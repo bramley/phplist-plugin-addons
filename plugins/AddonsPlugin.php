@@ -87,6 +87,13 @@ class AddonsPlugin extends phplistPlugin
                 'allowempty' => true,
                 'category' => 'Addons',
             ],
+            'addons_failing_campaign' => [
+                'description' => s('Mark a campaign as complete when all attempts to send are failing'),
+                'type' => 'boolean',
+                'value' => false,
+                'allowempty' => true,
+                'category' => 'Addons',
+            ],
         ];
         parent::activate();
     }
@@ -100,6 +107,10 @@ class AddonsPlugin extends phplistPlugin
     {
         if (getConfig('addons_remote_processing_log')) {
             $this->remoteQueueLog($sent, $invalid, $failed_sent, $unconfirmed, $counters);
+        }
+
+        if (getConfig('addons_failing_campaign')) {
+            $this->failingCampaign($counters);
         }
     }
 
@@ -291,5 +302,29 @@ class AddonsPlugin extends phplistPlugin
             return;
         }
         logEvent(s('Campaign %d finished sending', $messageId));
+    }
+
+    private function failingCampaign($counters)
+    {
+        global $tables;
+
+        foreach ($counters as $counter => $value) {
+            if (preg_match('/failed_sent_for_message (\d+)/', $counter, $matches) && $value > 0) {
+                $messageId = $matches[1];
+                $sent = $counters[sprintf('sent_users_for_message %d', $messageId)];
+
+                if ($sent == 0) {
+                    Sql_query(sprintf(
+                        'update %s set status = "sent", sent = now() where id = %d and status = "inprocess"',
+                        $tables['message'],
+                        $messageId
+                    ));
+
+                    if (Sql_Affected_Rows() > 0) {
+                        logEvent(sprintf('Campaign %d marked as sent due to sending failures', $messageId));
+                    }
+                }
+            }
+        }
     }
 }
