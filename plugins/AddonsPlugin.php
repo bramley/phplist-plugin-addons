@@ -33,10 +33,13 @@ class AddonsPlugin extends phplistPlugin
     public $documentationUrl = 'https://resources.phplist.com/plugin/addons';
     public $topMenuLinks = [
         'exportlog' => ['category' => 'system'],
+        'decode' => ['category' => 'system'],
     ];
     public $pageTitles = [
         'exportlog' => 'Export the event log',
-     ];
+        'decode' => 'Decode link track tid',
+    ];
+    public $commandlinePluginPages = ['decode'];
 
     private $mailer;
 

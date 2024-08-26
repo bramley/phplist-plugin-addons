@@ -23,7 +23,7 @@ return $config->setRules([
         'single_line_comment_style' => false,
         'visibility_required' => false,
         'phpdoc_to_comment' => false,
-        'function_typehint_space' => false,
+        'type_declaration_spaces' => false,
         'global_namespace_import' => false,
     ])
     ->setFinder($finder)
