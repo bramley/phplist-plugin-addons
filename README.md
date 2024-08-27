@@ -1,4 +1,4 @@
-    # Addons Plugin #
+# Addons Plugin #
 
 ## Description ##
 This plugin adds various small features to phpList which aren't worth implementing as individual plugins.
@@ -11,12 +11,19 @@ Each feature can be enabled separately through the plugin's group on the Setting
 This plugin requires phplist 3.5.4 or later, requires php version 7 or later, and also requires the Common plugin to be enabled.
 
 ### Install through phplist ###
+
 The recommended way to install is through the Plugins page (menu Config > Manage plugins) using the package URL
 `https://github.com/bramley/phplist-plugin-addons/archive/master.zip`.
+
+## Usage ##
+
+For guidance on using the plugin see the plugin's page within the phplist documentation site <https://resources.phplist.com/plugin/addons>
 
 ## Version history ##
 
     version         Description
+    1.17.0+20240827 Improve export of event log
+                    Add page to decode a link tracking parameter
     1.16.0+20240629 Remove the (test) prefix from the subject of a test campaign
     1.15.0+20240627 Mark campaign as sent when all attempts fail
     1.14.1+20231201 Improve matching of bounce rule

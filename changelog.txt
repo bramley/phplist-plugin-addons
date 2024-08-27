@@ -1,3 +1,7 @@
+version 1.17.0+20240827
+      Add page to decode a linktrack tid parameter
+      Add form specifying the number of rows to export from the event log
+
 version 1.16.0+20240629
       Remove the prefix from the subject of a test campaign
 
