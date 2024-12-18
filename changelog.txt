@@ -1,3 +1,6 @@
+version 1.18.0+20241218
+      Set the campaign content to the remote content
+
 version 1.17.0+20240827
       Add page to decode a linktrack tid parameter
       Add form specifying the number of rows to export from the event log

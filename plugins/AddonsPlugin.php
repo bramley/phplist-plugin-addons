@@ -104,6 +104,13 @@ class AddonsPlugin extends phplistPlugin
                 'allowempty' => true,
                 'category' => 'Addons',
             ],
+            'addons_set_remote_content' => [
+                'description' => s('Update campaign with remote content when sending is finished'),
+                'type' => 'boolean',
+                'value' => false,
+                'allowempty' => true,
+                'category' => 'Addons',
+            ],
         ];
         parent::activate();
     }
@@ -126,8 +133,21 @@ class AddonsPlugin extends phplistPlugin
 
     public function processSendingCampaignFinished($messageId, array $msgdata)
     {
+        global $inRemoteCall;
+
         if (getConfig('addons_remote_processing_log')) {
-            $this->remoteQueueCampaignFinished($messageId, $msgdata);
+            if ($inRemoteCall) {
+                logEvent(s('Campaign %d finished sending', $messageId));
+            }
+        }
+
+        if (getConfig('addons_set_remote_content')) {
+            if (!empty($url = $msgdata['sendurl'])) {
+                if (!empty($remoteContent = fetchUrlDirect($url))) {
+                    setMessageData($messageId, 'message', $remoteContent);
+                    setMessageData($messageId, 'sendurl', '');
+                }
+            }
         }
     }
 
@@ -308,16 +328,6 @@ class AddonsPlugin extends phplistPlugin
             );
             logEvent($event);
         }
-    }
-
-    private function remoteQueueCampaignFinished($messageId, $msgdata)
-    {
-        global $inRemoteCall;
-
-        if (!$inRemoteCall) {
-            return;
-        }
-        logEvent(s('Campaign %d finished sending', $messageId));
     }
 
     private function failingCampaign($counters)

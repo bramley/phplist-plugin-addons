@@ -22,6 +22,7 @@ For guidance on using the plugin see the plugin's page within the phplist docume
 ## Version history ##
 
     version         Description
+    1.18.0+20241218 Set the campaign content to the remote content
     1.17.0+20240827 Improve export of event log
                     Add page to decode a link tracking parameter
     1.16.0+20240629 Remove the (test) prefix from the subject of a test campaign
