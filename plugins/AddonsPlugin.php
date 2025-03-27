@@ -21,6 +21,7 @@
  */
 use phpList\plugin\Common\DAO\User;
 use phpList\plugin\Common\DB;
+use PHPMailer\PHPMailer\PHPMailer;
 
 class AddonsPlugin extends phplistPlugin
 {
@@ -108,6 +109,13 @@ class AddonsPlugin extends phplistPlugin
                 'description' => s('Update campaign with remote content when sending is finished'),
                 'type' => 'boolean',
                 'value' => false,
+                'allowempty' => true,
+                'category' => 'Addons',
+            ],
+            'addons_normalise_line_breaks' => [
+                'description' => s('Ensure that campaigns use only CRLF as the line break'),
+                'type' => 'boolean',
+                'value' => true,
                 'allowempty' => true,
                 'category' => 'Addons',
             ],
@@ -213,6 +221,11 @@ class AddonsPlugin extends phplistPlugin
     public function messageHeaders($mailer)
     {
         $this->mailer = $mailer;
+
+        if (getConfig('addons_normalise_line_breaks')) {
+            $mailer->Body = PHPMailer::normalizeBreaks($mailer->Body);
+            $mailer->AltBody = PHPMailer::normalizeBreaks($mailer->AltBody);
+        }
 
         if (getConfig('addons_remove_test_subject')) {
             $mailer->Subject = str_replace(s('(test)'), '', $mailer->Subject);

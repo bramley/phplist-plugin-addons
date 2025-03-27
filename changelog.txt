@@ -1,3 +1,6 @@
+version 1.18.1+20250327
+      Ensure that only CRLF is used as the line break
+
 version 1.18.0+20241218
       Set the campaign content to the remote content
 
