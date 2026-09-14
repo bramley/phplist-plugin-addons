@@ -154,6 +154,7 @@ class AddonsPlugin extends phplistPlugin
                 if (!empty($remoteContent = fetchUrlDirect($url))) {
                     setMessageData($messageId, 'message', $remoteContent);
                     setMessageData($messageId, 'sendurl', '');
+                    setMessageData($messageId, 'sendmethod', 'inputhere');
                 }
             }
         }
