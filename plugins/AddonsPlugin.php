@@ -119,6 +119,13 @@ class AddonsPlugin extends phplistPlugin
                 'allowempty' => true,
                 'category' => 'Addons',
             ],
+            'addons_user_track_test' => [
+                'description' => s('Add a test parameter to the user tracking URL'),
+                'type' => 'boolean',
+                'value' => true,
+                'allowempty' => true,
+                'category' => 'Addons',
+            ],
         ];
         parent::activate();
     }
@@ -158,6 +165,17 @@ class AddonsPlugin extends phplistPlugin
                 }
             }
         }
+    }
+
+    public function parseOutgoingHTMLMessage($messageid, $content, $destinationemail, $userdata = null)
+    {
+        if (getConfig('addons_user_track_test')) {
+            if (isset($_GET['page']) && $_GET['page'] == 'send') {
+                $content = str_replace('ut.php?', 'ut.php?test&', $content);
+            }
+        }
+
+        return $content;
     }
 
     public function parseOutgoingTextMessage($messageid, $textmessage, $destinationemail, $userdata = null)
